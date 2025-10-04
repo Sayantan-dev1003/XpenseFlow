@@ -108,10 +108,31 @@ class ExpenseService {
   }
 
   formatCurrency(amount, currency = 'USD') {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount);
+    try {
+      // Handle different currency codes and symbols
+      const currencyCode = currency?.toUpperCase() || 'USD';
+      
+      // Special handling for INR and other currencies
+      const localeMap = {
+        'INR': 'en-IN',
+        'USD': 'en-US',
+        'EUR': 'en-EU',
+        'GBP': 'en-GB'
+      };
+      
+      const locale = localeMap[currencyCode] || 'en-US';
+      
+      return new Intl.NumberFormat(locale, {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    } catch (error) {
+      // Fallback if currency formatting fails
+      console.warn('Currency formatting failed:', error);
+      return `${currency || '$'} ${amount.toFixed(2)}`;
+    }
   }
 
   formatDate(date) {

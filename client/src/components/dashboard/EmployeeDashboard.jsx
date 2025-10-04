@@ -1,21 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiDollarSign, FiClock, FiCheckCircle, FiXCircle, FiUpload, FiLogOut } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiUpload, FiLogOut } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import expenseService from '../../api/expenseService';
+import companyService from '../../api/companyService';
 
 const EmployeeDashboard = ({ user }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    totalAmount: 0
-  });
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [companyBaseCurrency, setCompanyBaseCurrency] = useState('USD');
 
   useEffect(() => {
     loadDashboardData();
@@ -25,13 +20,17 @@ const EmployeeDashboard = ({ user }) => {
     try {
       setLoading(true);
       
-      const [expenseStats, myExpenses] = await Promise.all([
-        expenseService.getExpenseStats({ period: 'month' }),
-        expenseService.getUserExpenses({ limit: 10 })
+      const [myExpenses, companyData] = await Promise.all([
+        expenseService.getUserExpenses({ limit: 10 }),
+        companyService.getCompany()
       ]);
 
-      setStats(expenseStats.data.stats.summary);
       setRecentExpenses(myExpenses.data.expenses);
+      
+      // Set company base currency for expense display
+      if (companyData.data.company?.baseCurrency?.code) {
+        setCompanyBaseCurrency(companyData.data.company.baseCurrency.code);
+      }
     } catch (error) {
       console.error('Failed to load employee dashboard data:', error);
     } finally {
@@ -39,23 +38,6 @@ const EmployeeDashboard = ({ user }) => {
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, color, subtitle, onClick }) => (
-    <div 
-      className={`bg-white rounded-lg shadow p-6 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
-      onClick={onClick}
-    >
-      <div className="flex items-center">
-        <div className={`flex-shrink-0 p-3 rounded-lg ${color}`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-semibold text-gray-900">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-        </div>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -103,39 +85,6 @@ const EmployeeDashboard = ({ user }) => {
         </button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Total Expenses"
-          value={stats.total}
-          icon={FiDollarSign}
-          color="bg-blue-500"
-          subtitle="This month"
-        />
-        <StatCard
-          title="Pending"
-          value={stats.pending}
-          icon={FiClock}
-          color="bg-yellow-500"
-          subtitle="Awaiting approval"
-          onClick={() => navigate('/expenses?status=pending')}
-        />
-        <StatCard
-          title="Approved"
-          value={stats.approved}
-          icon={FiCheckCircle}
-          color="bg-green-500"
-          subtitle="Ready for reimbursement"
-          onClick={() => navigate('/expenses?status=approved')}
-        />
-        <StatCard
-          title="Total Amount"
-          value={expenseService.formatCurrency(stats.totalAmount)}
-          icon={FiDollarSign}
-          color="bg-purple-500"
-          subtitle="This month"
-        />
-      </div>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -178,7 +127,7 @@ const EmployeeDashboard = ({ user }) => {
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-lg font-semibold text-gray-900">
-                          {expenseService.formatCurrency(expense.convertedAmount)}
+                          {expenseService.formatCurrency(expense.amount, expense.currency?.code)}
                         </p>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
                           {expense.status}
