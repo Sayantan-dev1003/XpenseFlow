@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiDollarSign, FiUpload, FiLogOut } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiUpload, FiLogOut, FiClock } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import expenseService from '../../api/expenseService';
@@ -10,6 +10,7 @@ const EmployeeDashboard = ({ user }) => {
   const { logout } = useAuth();
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [companyBaseCurrency, setCompanyBaseCurrency] = useState('USD');
 
   useEffect(() => {
@@ -19,6 +20,7 @@ const EmployeeDashboard = ({ user }) => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       const [myExpenses, companyData] = await Promise.all([
         expenseService.getUserExpenses({ limit: 10 }),
@@ -33,6 +35,13 @@ const EmployeeDashboard = ({ user }) => {
       }
     } catch (error) {
       console.error('Failed to load employee dashboard data:', error);
+      
+      // Set user-friendly error message
+      if (error.code === 'ERR_NETWORK' || error.code === 'ERR_CONNECTION_RESET') {
+        setError('Unable to connect to server. Please ensure the server is running and try again.');
+      } else {
+        setError('Failed to load dashboard data. Please try refreshing the page.');
+      }
     } finally {
       setLoading(false);
     }
@@ -43,13 +52,28 @@ const EmployeeDashboard = ({ user }) => {
     return (
       <div className="p-6">
         <div className="animate-pulse">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow p-6">
-                <div className="h-16 bg-gray-200 rounded"></div>
-              </div>
-            ))}
+          <div className="bg-gray-200 h-16 rounded-lg mb-6"></div>
+          <div className="bg-gray-200 h-64 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <div className="text-red-600 mb-4">
+            <FiDollarSign className="mx-auto h-12 w-12 mb-2" />
+            <h3 className="text-lg font-medium">Connection Error</h3>
           </div>
+          <p className="text-red-700 mb-4">{error}</p>
+          <button
+            onClick={loadDashboardData}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Try Again
+          </button>
         </div>
       </div>
     );
@@ -166,37 +190,6 @@ const EmployeeDashboard = ({ user }) => {
 
         {/* Quick Stats & Actions */}
         <div className="space-y-6">
-          {/* Status Breakdown */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Status Breakdown</h3>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                    <span className="text-sm text-gray-600">Approved</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{stats.approved}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
-                    <span className="text-sm text-gray-600">Pending</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{stats.pending}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
-                    <span className="text-sm text-gray-600">Rejected</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{stats.rejected}</span>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Quick Actions */}
           <div className="bg-white rounded-lg shadow">
