@@ -49,21 +49,40 @@ const FinanceDashboard = ({ user }) => {
 
   const handleApproveExpense = async (expenseId) => {
     try {
-      await expenseService.processExpense(expenseId, 'approved', 'Approved by finance team');
+      const result = await expenseService.processExpense(expenseId, 'approved', 'Approved by finance team');
+      
+      // Show success message based on approval status
+      if (result.data.expense.status === 'approved') {
+        alert('✅ Expense fully approved! Both manager and finance have approved.');
+      } else if (result.data.expense.status === 'processing') {
+        alert('✅ Expense approved by finance. Waiting for manager approval.');
+      }
+      
       loadDashboardData(); // Refresh data
     } catch (error) {
       console.error('Failed to approve expense:', error);
-      alert('Failed to approve expense');
+      const errorMessage = error.response?.data?.message || 'Failed to approve expense';
+      alert(`❌ ${errorMessage}`);
     }
   };
 
   const handleRejectExpense = async (expenseId) => {
+    const comment = prompt('Please provide a reason for rejection:');
+    if (!comment || comment.trim() === '') {
+      if (comment !== null) {
+        alert('Please provide a reason for rejection.');
+      }
+      return;
+    }
+
     try {
-      await expenseService.processExpense(expenseId, 'rejected', 'Rejected by finance team');
+      await expenseService.processExpense(expenseId, 'rejected', comment);
+      alert('✅ Expense rejected successfully.');
       loadDashboardData(); // Refresh data
     } catch (error) {
       console.error('Failed to reject expense:', error);
-      alert('Failed to reject expense');
+      const errorMessage = error.response?.data?.message || 'Failed to reject expense';
+      alert(`❌ ${errorMessage}`);
     }
   };
 
@@ -257,7 +276,7 @@ const FinanceDashboard = ({ user }) => {
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-gray-900">
-                            {expenseService.formatCurrency(expense.convertedAmount || expense.amount || 0)}
+                            {expenseService.formatCurrency(expense.amount, expense.currency?.code)}
                           </p>
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
                             {expense.status}
@@ -300,7 +319,7 @@ const FinanceDashboard = ({ user }) => {
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
                         <p className="font-medium text-gray-900">
-                          {expenseService.formatCurrency(expense.convertedAmount || expense.amount || 0)}
+                          {expenseService.formatCurrency(expense.amount, expense.currency?.code)}
                         </p>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
                           {expense.status}
