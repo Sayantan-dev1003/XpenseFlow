@@ -119,11 +119,6 @@ export const authService = {
   // Google OAuth
   googleAuth: () => {
     window.location.href = `${API_BASE_URL}/auth/google`;
-  },
-
-  // GitHub OAuth (placeholder)
-  githubAuth: () => {
-    window.location.href = `${API_BASE_URL}/auth/github`;
   }
 };
 

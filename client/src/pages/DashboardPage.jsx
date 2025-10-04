@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import Button from '../components/common/Button.jsx';
-import { userService } from '../api/userService.js';
+import userService from '../api/userService.js';
 
 const DashboardPage = () => {
   const { user, logout } = useAuth();

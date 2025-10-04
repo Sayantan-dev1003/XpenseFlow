@@ -17,6 +17,133 @@ class EmailService {
     });
   }
 
+  // Send welcome email for new users
+  async sendWelcomeEmail(email, firstName, tempPassword) {
+    try {
+      const loginUrl = `${config.CLIENT_URL}/login`;
+      const html = this.getWelcomeEmailTemplate(firstName, email, tempPassword, loginUrl);
+      
+      const mailOptions = {
+        from: `"XpenseFlow" <${config.EMAIL_USER}>`,
+        to: email,
+        subject: 'Welcome to XpenseFlow - Your Account is Ready!',
+        html
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('Welcome email sent:', result.messageId);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      console.error('Welcome email error:', error);
+      throw new Error('Failed to send welcome email');
+    }
+  }
+
+  // Get welcome email template
+  getWelcomeEmailTemplate(firstName, email, tempPassword, loginUrl) {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to XpenseFlow</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+          }
+          .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-bottom: 10px;
+          }
+          .button {
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+          }
+          .credentials {
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .warning {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #92400e;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">XpenseFlow</div>
+            <h1>Welcome to XpenseFlow!</h1>
+          </div>
+          
+          <p>Hello ${firstName},</p>
+          <p>Your account has been created successfully! You can now access the XpenseFlow expense management system.</p>
+          
+          <div class="credentials">
+            <h3>Your Login Credentials:</h3>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Temporary Password:</strong> ${tempPassword}</p>
+          </div>
+          
+          <div style="text-align: center;">
+            <a href="${loginUrl}" class="button">Login to XpenseFlow</a>
+          </div>
+          
+          <div class="warning">
+            <strong>Important Security Notice:</strong> Please change your password immediately after your first login for security reasons.
+          </div>
+          
+          <p>If you have any questions or need assistance, please contact your administrator.</p>
+          
+          <div class="footer">
+            <p>This is an automated message from XpenseFlow.</p>
+            <p>© 2024 XpenseFlow. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
   // Send password reset email
   async sendPasswordResetEmail(email, resetToken) {
     try {

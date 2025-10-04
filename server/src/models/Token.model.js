@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const tokenSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: () => new mongoose.Types.ObjectId()
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -50,6 +54,7 @@ tokenSchema.statics.createToken = async function(userId, type, expiresIn = '1h',
   expiresAt.setTime(expiresAt.getTime() + this.parseExpiresIn(expiresIn));
   
   const tokenDoc = new this({
+    _id: new mongoose.Types.ObjectId(),
     userId,
     token,
     type,

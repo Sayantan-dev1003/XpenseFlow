@@ -6,8 +6,8 @@ const commonPatterns = {
   password: Joi.string().min(6).max(128).pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).messages({
     'string.pattern.base': 'Password must contain at least one lowercase letter, one uppercase letter, and one number'
   }),
-  phoneNumber: Joi.string().pattern(/^(\+91|91)?[6-9]\d{9}$/).max(15).messages({
-    'string.pattern.base': 'Please enter a valid Indian phone number (+91 format)'
+  phoneNumber: Joi.string().pattern(/^\+?[1-9]\d{1,14}$/).max(15).messages({
+    'string.pattern.base': 'Please enter a valid international phone number'
   }),
   name: Joi.string().min(2).max(50).trim().pattern(/^[a-zA-Z\s]+$/).messages({
     'string.pattern.base': 'Name can only contain letters and spaces'
@@ -35,7 +35,15 @@ const registerSchema = Joi.object({
     'any.required': 'Password is required',
     'string.min': 'Password must be at least 6 characters long'
   }),
-  phoneNumber: commonPatterns.phoneNumber.optional().allow('')
+  phoneNumber: commonPatterns.phoneNumber.optional().allow(''),
+  companyName: Joi.string().min(2).max(100).trim().required().messages({
+    'any.required': 'Company name is required',
+    'string.empty': 'Company name cannot be empty'
+  }),
+  country: Joi.string().min(2).max(100).trim().required().messages({
+    'any.required': 'Country is required',
+    'string.empty': 'Country cannot be empty'
+  })
 });
 
 // Login validation schema

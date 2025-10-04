@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: () => new mongoose.Types.ObjectId()
+  },
   firstName: {
     type: String,
     required: [true, 'First name is required'],
@@ -21,10 +25,8 @@ const userSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function(email) {
-        // Allow GitHub fallback emails and standard email format
-        const githubFallbackPattern = /^[\w.-]+@github\.local$/;
         const standardEmailPattern = /^[\w.-]+@[\w.-]+\.[\w]{2,}$/;
-        return githubFallbackPattern.test(email) || standardEmailPattern.test(email);
+        return standardEmailPattern.test(email);
       },
       message: 'Please enter a valid email address'
     }
@@ -46,12 +48,9 @@ const userSchema = new mongoose.Schema({
   googleId: {
     type: String
   },
-  githubId: {
-    type: String
-  },
   authProvider: {
     type: String,
-    enum: ['local', 'google', 'github'],
+    enum: ['local', 'google'],
     default: 'local'
   },
   passwordResetToken: String,
@@ -77,11 +76,11 @@ const userSchema = new mongoose.Schema({
   company: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Company',
-    required: true
+    required: false // Made optional to handle registration flow
   },
   role: {
     type: String,
-    enum: ['admin', 'manager', 'employee'],
+    enum: ['admin', 'manager', 'employee', 'finance'],
     default: 'employee',
     required: true
   },
@@ -140,14 +139,18 @@ userSchema.virtual('isLocked').get(function() {
 // Index for better performance
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ googleId: 1 }, { sparse: true });
-userSchema.index({ githubId: 1 }, { sparse: true });
 userSchema.index({ company: 1 });
 userSchema.index({ manager: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ employeeId: 1, company: 1 }, { sparse: true });
 
-// Pre-save middleware to hash password
+// Pre-save middleware to ensure _id is set and hash password
 userSchema.pre('save', async function(next) {
+  // Ensure _id is set if not already present
+  if (!this._id) {
+    this._id = new mongoose.Types.ObjectId();
+  }
+  
   // Only hash the password if it has been modified (or is new)
   if (!this.isModified('password')) return next();
   
@@ -223,10 +226,7 @@ userSchema.statics.findByCredentials = async function(email, socialId = null) {
   
   if (socialId) {
     user = await this.findOne({
-      $or: [
-        { googleId: socialId },
-        { githubId: socialId }
-      ]
+      googleId: socialId
     });
   } else {
     user = await this.findOne({ email: email.toLowerCase() });

@@ -145,11 +145,6 @@ GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 
-# GitHub OAuth
-GITHUB_CLIENT_ID=your-github-client-id
-GITHUB_CLIENT_SECRET=your-github-client-secret
-GITHUB_CALLBACK_URL=http://localhost:3000/api/auth/github/callback
-
 # Email Configuration
 EMAIL_SERVICE=gmail
 EMAIL_USER=your-email@gmail.com
@@ -194,35 +189,6 @@ VITE_APP_VERSION=1.0.0
    - `https://yourdomain.com/api/auth/google/callback` (production)
 6. Copy Client ID and Client Secret to your `.env` files
 
-#### GitHub OAuth Setup
-
-1. Go to [GitHub Developer Settings](https://github.com/settings/developers)
-2. Click "New OAuth App"
-3. Fill in the application details:
-   - **Application name**: Your app name (e.g., "AuthFlow")
-   - **Homepage URL**: `http://localhost:5173` (development) or your production URL
-   - **Authorization callback URL**: 
-     - `http://localhost:3000/api/auth/github/callback` (development)
-     - `https://yourdomain.com/api/auth/github/callback` (production)
-4. Click "Register application"
-5. Copy Client ID and generate Client Secret
-6. Add the credentials to your `.env` files
-
-#### OAuth Provider Comparison
-
-| Feature | Google | GitHub |
-|---------|--------|--------|
-| **User Data** | Full profile, email, photo | Username, email (if public), avatar |
-| **Email Access** | Always available | Only if user has public email (fallback: username@github.local) |
-| **Profile Picture** | High-quality photos | Avatar images |
-| **User Base** | General users | Developers, tech professionals |
-| **Setup Complexity** | Moderate | Simple |
-| **API Limits** | Generous | Rate limited |
-
-**When to use each:**
-- **Google**: Best for general applications, consumer apps, when you need reliable email access
-- **GitHub**: Perfect for developer tools, coding platforms, technical communities
-
 ### 5. Email Configuration (Gmail)
 
 1. Enable 2-factor authentication on your Gmail account
@@ -245,7 +211,7 @@ The AuthFlow system implements a sophisticated multi-step authentication process
 #### OAuth Integration
 
 **Social Login Flow:**
-1. User clicks Google/GitHub button
+1. User clicks Google button
 2. Redirected to provider's OAuth page
 3. User authorizes the application
 4. Provider redirects back with authorization code
@@ -471,12 +437,6 @@ Content-Type: application/json
 - **"invalid_client"**: Check Client ID and Secret are correct
 - **"access_denied"**: User denied permission or app not verified
 
-#### GitHub OAuth Problems
-- **"redirect_uri_mismatch"**: Verify callback URL in GitHub OAuth app settings
-- **"bad_verification_code"**: Check Client Secret is correct
-- **No email returned**: User's email is private, app needs additional permissions
-- **"Please enter a valid email"**: GitHub users with private emails get fallback `username@github.local` format
-
 #### General OAuth Troubleshooting
 1. **Check Environment Variables**: Ensure all OAuth credentials are set correctly
 2. **Verify URLs**: Callback URLs must match exactly (including http/https)
@@ -502,7 +462,6 @@ Content-Type: application/json
 - [ ] Login with incorrect credentials (rate limiting)
 - [ ] Account lockout after multiple failed attempts
 - [ ] Google OAuth login
-- [ ] GitHub OAuth login
 - [ ] Password reset flow
 - [ ] Profile update
 - [ ] Logout functionality

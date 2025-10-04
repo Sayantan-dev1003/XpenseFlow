@@ -34,16 +34,6 @@ router.get('/google/callback',
 );
 router.get('/google/failure', oauthController.googleFailure);
 
-// GitHub OAuth (Optional - only if credentials are configured)
-if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
-  router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
-  router.get('/github/callback', 
-    passport.authenticate('github', { failureRedirect: '/api/auth/github/failure' }),
-    oauthController.githubCallback
-  );
-  router.get('/github/failure', oauthController.githubFailure);
-}
-
 // Token refresh
 router.post('/refresh-token', refreshToken, (req, res) => {
   res.status(200).json({

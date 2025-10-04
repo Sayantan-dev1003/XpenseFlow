@@ -189,28 +189,6 @@ class CompanyController {
     }
   }
 
-  /**
-   * Get all countries with currencies
-   */
-  async getCountriesWithCurrencies(req, res) {
-    try {
-      const countries = await currencyService.getAllCountriesWithCurrencies();
-
-      res.json({
-        success: true,
-        data: {
-          countries: countries.slice(0, 50) // Limit to first 50 for performance
-        }
-      });
-    } catch (error) {
-      winston.error('Error fetching countries:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch countries',
-        error: error.message
-      });
-    }
-  }
 
   /**
    * Get supported currencies

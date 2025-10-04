@@ -1,6 +1,10 @@
 const mongoose = require('mongoose');
 
 const companySchema = new mongoose.Schema({
+  _id: {
+    type: mongoose.Schema.Types.ObjectId,
+    default: () => new mongoose.Types.ObjectId()
+  },
   name: {
     type: String,
     required: [true, 'Company name is required'],
@@ -103,8 +107,13 @@ const companySchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Default expense categories
+// Pre-save middleware to ensure _id is set and set default categories
 companySchema.pre('save', function(next) {
+  // Ensure _id is set if not already present
+  if (!this._id) {
+    this._id = new mongoose.Types.ObjectId();
+  }
+  
   if (this.isNew && (!this.settings.expenseCategories || this.settings.expenseCategories.length === 0)) {
     this.settings.expenseCategories = [
       { name: 'Travel', description: 'Travel and transportation expenses' },

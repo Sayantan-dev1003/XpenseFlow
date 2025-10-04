@@ -1,6 +1,7 @@
 const User = require('../models/User.model');
 const Token = require('../models/Token.model');
 const Company = require('../models/Company.model');
+const mongoose = require('mongoose');
 const config = require('../config');
 const { 
   generateTokens, 
@@ -47,36 +48,73 @@ const register = asyncHandler(async (req, res) => {
     currency = { code: 'USD', name: 'US Dollar', symbol: '$' };
   }
 
-  // Create company first (if this is the first signup)
+  // Use a transaction to ensure data consistency
+  const session = await User.startSession();
   let company = null;
-  if (companyName) {
-    company = new Company({
-      name: companyName,
-      country: country || 'United States',
-      baseCurrency: currency,
-      createdBy: null // Will be updated after user creation
+  let user = null;
+
+  try {
+    const result = await session.withTransaction(async () => {
+      if (companyName) {
+        // Step 1: Create user first (without company field initially)
+        const newUser = new User({
+          firstName,
+          lastName,
+          email: email.toLowerCase(),
+          password,
+          phoneNumber,
+          authProvider: 'local',
+          role: 'admin'
+          // company field is intentionally omitted initially
+        }, { session });
+
+        await newUser.save({ session });
+
+        // Step 2: Create company with the user ID as createdBy
+        const newCompany = new Company({
+          name: companyName,
+          country: country || 'United States',
+          baseCurrency: currency,
+          createdBy: newUser._id, // Now we have the actual user ID
+          settings: {
+            expenseCategories: [],
+            expenseLimits: {
+              dailyLimit: 1000,
+              monthlyLimit: 10000
+            },
+            approvalSettings: {
+              requireApprovalAbove: 100,
+              autoApproveBelow: 50
+            }
+          }
+        }, { session });
+
+        await newCompany.save({ session });
+
+        // Step 3: Update user with the company reference
+        newUser.company = newCompany._id;
+        await newUser.save({ session });
+
+        return { user: newUser, company: newCompany };
+      } else {
+        // If no company name provided, this might be joining an existing company
+        // For now, throw an error as this flow isn't fully implemented
+        throw new AppError('Company name is required for registration', 400);
+      }
     });
-    await company.save();
+
+    // Extract user and company from transaction result
+    user = result.user;
+    company = result.company;
+  } catch (error) {
+    throw error;
+  } finally {
+    await session.endSession();
   }
 
-  // Create user
-  const user = new User({
-    firstName,
-    lastName,
-    email: email.toLowerCase(),
-    password,
-    phoneNumber,
-    authProvider: 'local',
-    company: company ? company._id : null,
-    role: company ? 'admin' : 'employee' // First user becomes admin
-  });
-
-  await user.save();
-
-  // Update company's createdBy field
-  if (company) {
-    company.createdBy = user._id;
-    await company.save();
+  // Ensure we have the user with proper _id after transaction
+  if (!user || !user._id) {
+    throw new AppError('User creation failed', 500);
   }
 
   // Generate tokens for immediate login

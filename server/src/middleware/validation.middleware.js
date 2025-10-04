@@ -187,6 +187,20 @@ const userSchemas = {
       currentPassword: Joi.string().required(),
       newPassword: commonSchemas.password.required()
     })
+  },
+
+  createUser: {
+    body: Joi.object({
+      firstName: Joi.string().required().trim().max(50),
+      lastName: Joi.string().required().trim().max(50),
+      email: commonSchemas.email.required(),
+      role: Joi.string().valid('employee', 'manager', 'finance').required(),
+      manager: Joi.string().optional().when('role', {
+        is: 'employee',
+        then: Joi.string().required(),
+        otherwise: Joi.forbidden()
+      })
+    })
   }
 };
 

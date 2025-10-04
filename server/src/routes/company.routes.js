@@ -82,8 +82,7 @@ router.get('/', companyController.getCompany);
 router.put('/', validate(updateCompanySchema), companyController.updateCompany);
 router.get('/stats', companyController.getCompanyStats);
 
-// Currency and countries routes
-router.get('/countries', companyController.getCountriesWithCurrencies);
+// Currency routes
 router.get('/currencies', companyController.getSupportedCurrencies);
 router.get('/exchange-rates', companyController.getExchangeRates);
 

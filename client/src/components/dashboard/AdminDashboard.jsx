@@ -3,6 +3,9 @@ import { FiUsers, FiDollarSign, FiTrendingUp, FiSettings, FiPlus, FiEye } from '
 import expenseService from '../../api/expenseService';
 import companyService from '../../api/companyService';
 import workflowService from '../../api/workflowService';
+import userService from '../../api/userService';
+import UserCreationForm from './UserCreationForm';
+import UserList from './UserList';
 
 const AdminDashboard = ({ user }) => {
   const [stats, setStats] = useState({
@@ -12,6 +15,8 @@ const AdminDashboard = ({ user }) => {
   });
   const [recentExpenses, setRecentExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+  const [showUserCreationForm, setShowUserCreationForm] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -40,6 +45,10 @@ const AdminDashboard = ({ user }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUserCreated = () => {
+    loadDashboardData(); // Refresh stats
   };
 
   const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
@@ -81,146 +90,212 @@ const AdminDashboard = ({ user }) => {
         <p className="text-gray-600">Welcome back, {user.firstName}! Here's your company overview.</p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Tabs */}
+      <div className="mb-8">
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('overview')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'overview'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'users'
+                  ? 'border-purple-500 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              User Management
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && (
+        <>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Total Users"
-          value={stats.company.users.total}
+          value={stats.company?.users?.total || 0}
           icon={FiUsers}
           color="bg-blue-500"
-          subtitle={`${stats.company.users.employee} employees`}
+          subtitle={`${stats.company?.users?.employee || 0} employees`}
         />
         <StatCard
           title="Pending Expenses"
-          value={stats.expenses.pending}
+          value={stats.expenses?.pending || 0}
           icon={FiDollarSign}
           color="bg-yellow-500"
           subtitle="Awaiting approval"
         />
         <StatCard
           title="Monthly Total"
-          value={expenseService.formatCurrency(stats.expenses.totalAmount)}
+          value={expenseService.formatCurrency(stats.expenses?.totalAmount || 0)}
           icon={FiTrendingUp}
           color="bg-green-500"
           subtitle="This month"
         />
         <StatCard
           title="Active Workflows"
-          value={stats.workflows.filter(w => w.isActive).length}
+          value={(stats.workflows || []).filter(w => w.isActive).length}
           icon={FiSettings}
           color="bg-purple-500"
-          subtitle={`${stats.workflows.length} total`}
+          subtitle={`${(stats.workflows || []).length} total`}
         />
-      </div>
-
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Recent Expenses */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Recent Expenses</h3>
-              <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                View All
-              </button>
-            </div>
           </div>
-          <div className="p-6">
-            {recentExpenses.length > 0 ? (
-              <div className="space-y-4">
-                {recentExpenses.map((expense) => (
-                  <div key={expense._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{expense.title}</p>
-                      <p className="text-sm text-gray-500">
-                        by {expense.submittedBy.firstName} {expense.submittedBy.lastName}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {expenseService.formatDate(expense.createdAt)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-gray-900">
-                        {expenseService.formatCurrency(expense.convertedAmount)}
-                      </p>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
-                        {expense.status}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Recent Expenses */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">Recent Expenses</h3>
+                  <button className="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    View All
+                  </button>
+                </div>
               </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">No recent expenses</p>
-            )}
-          </div>
-        </div>
+              <div className="p-6">
+                {recentExpenses.length > 0 ? (
+                  <div className="space-y-4">
+                    {recentExpenses.map((expense) => (
+                      <div key={expense._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900">{expense.title}</p>
+                          <p className="text-sm text-gray-500">
+                            by {expense.submittedBy.firstName} {expense.submittedBy.lastName}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {expenseService.formatDate(expense.createdAt)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-gray-900">
+                            {expenseService.formatCurrency(expense.convertedAmount || expense.amount || 0)}
+                          </p>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
+                            {expense.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-center py-8">No recent expenses</p>
+                )}
+              </div>
+            </div>
 
-        {/* Quick Actions */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 gap-4">
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <FiPlus className="h-5 w-5 text-blue-600 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">Create Workflow</p>
-                  <p className="text-sm text-gray-500">Set up new approval workflow</p>
+            {/* Quick Actions */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
+              </div>
+              <div className="p-6">
+                <div className="grid grid-cols-1 gap-4">
+                  <button 
+                    onClick={() => setActiveTab('users')}
+                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    <FiUsers className="h-5 w-5 text-green-600 mr-3" />
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">Manage Users</p>
+                      <p className="text-sm text-gray-500">Add or edit user accounts</p>
+                    </div>
+                  </button>
+                  
+                  <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <FiPlus className="h-5 w-5 text-blue-600 mr-3" />
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">Create Workflow</p>
+                      <p className="text-sm text-gray-500">Set up new approval workflow</p>
+                    </div>
+                  </button>
+                  
+                  <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <FiSettings className="h-5 w-5 text-purple-600 mr-3" />
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">Company Settings</p>
+                      <p className="text-sm text-gray-500">Configure company preferences</p>
+                    </div>
+                  </button>
+                  
+                  <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                    <FiEye className="h-5 w-5 text-orange-600 mr-3" />
+                    <div className="text-left">
+                      <p className="font-medium text-gray-900">View Reports</p>
+                      <p className="text-sm text-gray-500">Generate expense reports</p>
+                    </div>
+                  </button>
                 </div>
-              </button>
-              
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <FiUsers className="h-5 w-5 text-green-600 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">Manage Users</p>
-                  <p className="text-sm text-gray-500">Add or edit user accounts</p>
-                </div>
-              </button>
-              
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <FiSettings className="h-5 w-5 text-purple-600 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">Company Settings</p>
-                  <p className="text-sm text-gray-500">Configure company preferences</p>
-                </div>
-              </button>
-              
-              <button className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                <FiEye className="h-5 w-5 text-orange-600 mr-3" />
-                <div className="text-left">
-                  <p className="font-medium text-gray-900">View Reports</p>
-                  <p className="text-sm text-gray-500">Generate expense reports</p>
-                </div>
-              </button>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Expense Overview Chart Placeholder */}
-      <div className="mt-8 bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Expense Overview</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">{stats.expenses.approved}</div>
-              <div className="text-sm text-gray-500">Approved</div>
+          {/* Expense Overview Chart Placeholder */}
+          <div className="mt-8 bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Expense Overview</h3>
             </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-yellow-600">{stats.expenses.pending}</div>
-              <div className="text-sm text-gray-500">Pending</div>
-            </div>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-red-600">{stats.expenses.rejected}</div>
-              <div className="text-sm text-gray-500">Rejected</div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-green-600">{stats.expenses?.approved || 0}</div>
+                  <div className="text-sm text-gray-500">Approved</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-yellow-600">{stats.expenses?.pending || 0}</div>
+                  <div className="text-sm text-gray-500">Pending</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-red-600">{stats.expenses?.rejected || 0}</div>
+                  <div className="text-sm text-gray-500">Rejected</div>
+                </div>
+              </div>
             </div>
           </div>
+        </>
+      )}
+
+      {activeTab === 'users' && (
+        <div className="space-y-6">
+          {/* User Management Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">User Management</h2>
+              <p className="text-gray-600">Manage your team members and their roles</p>
+            </div>
+            <button
+              onClick={() => setShowUserCreationForm(true)}
+              className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+            >
+              <FiPlus className="w-4 h-4 mr-2" />
+              Add User
+            </button>
+          </div>
+
+          {/* User List */}
+          <UserList />
         </div>
-      </div>
+      )}
+
+      {/* User Creation Form Modal */}
+      {showUserCreationForm && (
+        <UserCreationForm
+          onClose={() => setShowUserCreationForm(false)}
+          onUserCreated={handleUserCreated}
+        />
+      )}
     </div>
   );
 };
