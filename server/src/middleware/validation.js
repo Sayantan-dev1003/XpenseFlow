@@ -101,6 +101,28 @@ const changePasswordSchema = Joi.object({
   })
 });
 
+// Create user validation schema (Admin only)
+const createUserSchema = Joi.object({
+  firstName: commonPatterns.name.required().messages({
+    'any.required': 'First name is required',
+    'string.empty': 'First name cannot be empty'
+  }),
+  lastName: commonPatterns.name.required().messages({
+    'any.required': 'Last name is required',
+    'string.empty': 'Last name cannot be empty'
+  }),
+  email: commonPatterns.email.required().messages({
+    'any.required': 'Email is required',
+    'string.email': 'Please enter a valid email address'
+  }),
+  role: Joi.string().valid('employee', 'manager', 'finance').required().messages({
+    'any.required': 'Role is required',
+    'any.only': 'Role must be employee, manager, or finance'
+  }),
+  manager: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional().allow('').messages({
+    'string.pattern.base': 'Invalid manager ID format'
+  })
+});
 
 // Account linking schema
 const accountLinkingSchema = Joi.object({
@@ -234,6 +256,7 @@ module.exports = {
   passwordResetRequestSchema,
   passwordResetSchema,
   changePasswordSchema,
+  createUserSchema,
   accountLinkingSchema,
   resendOTPSchema,
   sendLoginOTPSchema,

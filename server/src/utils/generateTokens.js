@@ -7,7 +7,7 @@ const { securityLogger } = require('./logger');
 
 // Generate JWT tokens
 const generateTokens = (userId) => {
-  const payload = { userId };
+  const payload = { id: userId }; // Use 'id' to match middleware expectations
   
   const accessToken = jwt.sign(payload, config.JWT_SECRET, {
     expiresIn: config.JWT_EXPIRE
@@ -44,12 +44,23 @@ const generateSecureRefreshToken = async (userId, req) => {
 const setSecureCookies = (res, accessToken, refreshToken) => {
   const isProduction = process.env.NODE_ENV === 'production';
   
-  // Access token cookie (short-lived)
+  // Parse the access token to get its expiration time
+  let accessTokenExpiry = 15 * 60 * 1000; // Default 15 minutes
+  try {
+    const decoded = jwt.decode(accessToken);
+    if (decoded && decoded.exp) {
+      accessTokenExpiry = (decoded.exp - Math.floor(Date.now() / 1000)) * 1000;
+    }
+  } catch (error) {
+    console.warn('Could not decode access token for cookie expiry:', error);
+  }
+  
+  // Access token cookie (short-lived, matches JWT expiry)
   res.cookie('accessToken', accessToken, {
     httpOnly: true,
     secure: isProduction, // Only send over HTTPS in production
     sameSite: 'strict', // CSRF protection
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    maxAge: Math.max(accessTokenExpiry, 60000), // At least 1 minute, match JWT expiry
     path: '/'
   });
 
@@ -121,7 +132,7 @@ const authenticate = async (req, res, next) => {
     }
     
     // Get user from database
-    const user = await User.findById(decoded.userId).select('-password');
+    const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -163,7 +174,7 @@ const optionalAuth = async (req, res, next) => {
     if (token) {
       const decoded = verifyToken(token, config.JWT_SECRET);
       if (decoded) {
-        const user = await User.findById(decoded.userId).select('-password');
+        const user = await User.findById(decoded.id).select('-password');
         if (user && user.isActive) {
           req.user = user;
         }
@@ -200,7 +211,7 @@ const refreshToken = async (req, res, next) => {
     
     // Check if refresh token exists in database
     const tokenDoc = await Token.findOne({
-      userId: decoded.userId,
+      userId: decoded.id,
       token,
       type: 'refresh',
       isUsed: false,
@@ -215,7 +226,7 @@ const refreshToken = async (req, res, next) => {
     }
     
     // Get user
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.id);
     if (!user || !user.isActive) {
       return res.status(401).json({
         success: false,

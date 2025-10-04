@@ -99,21 +99,22 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is logged in on app start
   const checkAuth = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      try {
-        const response = await authService.getCurrentUser();
-        dispatch({
-          type: AUTH_ACTIONS.SET_USER,
-          payload: response.data.user
-        });
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        clearTokens();
-        dispatch({ type: AUTH_ACTIONS.LOGOUT });
+    try {
+      const response = await authService.getCurrentUser();
+      dispatch({
+        type: AUTH_ACTIONS.SET_USER,
+        payload: response.data.user
+      });
+    } catch (error) {
+      // Only log as error for non-401 responses (server issues, network problems)
+      if (error.response?.status === 401) {
+        // 401 is expected when user is not authenticated - just set loading to false
+        console.log('No authenticated user found');
+        dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+      } else {
+        console.error('Auth check failed due to server error:', error);
+        dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
       }
-    } else {
-      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
     }
   }, []);
 
@@ -161,9 +162,15 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.verifyLoginOTP(userId, otp, method);
       
       if (response.success) {
-        const { user, accessToken, refreshToken } = response.data;
+        const { user } = response.data;
         
-        storeTokens(accessToken, refreshToken);
+        // Debug logging
+        console.log('AuthContext - Login response:', response);
+        console.log('AuthContext - User object:', user);
+        console.log('AuthContext - User role:', user?.role);
+        
+        // Don't store tokens in localStorage - server handles via HTTP-only cookies
+        // storeTokens(accessToken, refreshToken);
         
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -190,9 +197,10 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(userData);
       
       if (response.success) {
-        const { user, accessToken, refreshToken } = response.data;
+        const { user } = response.data;
         
-        storeTokens(accessToken, refreshToken);
+        // Don't store tokens in localStorage - server handles via HTTP-only cookies
+        // storeTokens(accessToken, refreshToken);
         
         dispatch({
           type: AUTH_ACTIONS.REGISTER_SUCCESS,
@@ -222,7 +230,8 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      clearTokens();
+      // Don't clear localStorage tokens - server handles via HTTP-only cookies
+      // clearTokens();
       dispatch({ type: AUTH_ACTIONS.LOGOUT });
       toast.success('Logged out successfully');
     }
@@ -244,6 +253,12 @@ export const AuthProvider = ({ children }) => {
     dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
   }, []);
 
+  // Handle authentication failure (called when API requests return 401)
+  const handleAuthFailure = useCallback(() => {
+    console.warn('Authentication failure detected - logging out user');
+    dispatch({ type: AUTH_ACTIONS.LOGOUT });
+  }, []);
+
   // Context value - memoized to prevent unnecessary re-renders
   const value = useMemo(() => ({
     ...state,
@@ -254,8 +269,9 @@ export const AuthProvider = ({ children }) => {
     logout,
     googleLogin,
     githubLogin,
-    clearError
-  }), [state, login, sendLoginOTP, verifyLoginOTP, register, logout, googleLogin, githubLogin, clearError]);
+    clearError,
+    handleAuthFailure
+  }), [state, login, sendLoginOTP, verifyLoginOTP, register, logout, googleLogin, githubLogin, clearError, handleAuthFailure]);
 
   return (
     <AuthContext.Provider value={value}>

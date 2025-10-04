@@ -35,9 +35,9 @@ const googleCallback = async (req, res) => {
       await emailService.sendWelcomeEmail(req.user.email, req.user.firstName);
     }
 
-    // Redirect to frontend with tokens
+    // Redirect to frontend - tokens are now in HTTP-only cookies
     const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/auth/success?token=${accessToken}&refresh=${refreshToken}`);
+    res.redirect(`${frontendUrl}/auth/success`);
   } catch (error) {
     console.error('Google callback error:', error);
     const frontendUrl = process.env.CLIENT_URL || 'http://localhost:5173';

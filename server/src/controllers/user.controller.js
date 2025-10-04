@@ -187,7 +187,9 @@ const getCurrentUser = asyncHandler(async (req, res) => {
         profilePicture: req.user.profilePicture,
         authProvider: req.user.authProvider,
         preferences: req.user.preferences,
-        createdAt: req.user.createdAt
+        createdAt: req.user.createdAt,
+        role: req.user.role,
+        company: req.user.company
       }
     }
   });

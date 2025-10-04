@@ -157,7 +157,7 @@ const register = asyncHandler(async (req, res) => {
 
 // Login user - Step 1: Check credentials
 const login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, role } = req.body;
 
   // Find user
   const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
@@ -180,6 +180,12 @@ const login = asyncHandler(async (req, res) => {
     throw new AppError('Something went wrong', 401);
   }
 
+  // Validate role if provided
+  if (role && user.role !== role) {
+    securityLogger.loginAttempt(email, false, req.ip, req.get('User-Agent'), 'Role mismatch');
+    throw new AppError('Invalid role selection for this account', 401);
+  }
+
   // Reset login attempts
   await user.resetLoginAttempts();
 
@@ -192,7 +198,8 @@ const login = asyncHandler(async (req, res) => {
       email: user.email,
       phoneNumber: user.phoneNumber,
       hasEmail: !!user.email,
-      hasPhone: !!user.phoneNumber
+      hasPhone: !!user.phoneNumber,
+      role: user.role
     }
   });
 });
@@ -306,7 +313,9 @@ const verifyLoginOTP = asyncHandler(async (req, res) => {
           firstName: user.firstName,
           lastName: user.lastName,
           email: user.email,
-          profilePicture: user.profilePicture
+          profilePicture: user.profilePicture,
+          role: user.role,
+          company: user.company
         },
         accessToken,
         refreshToken
@@ -444,7 +453,9 @@ const getCurrentUser = asyncHandler(async (req, res) => {
         profilePicture: req.user.profilePicture,
         authProvider: req.user.authProvider,
         preferences: req.user.preferences,
-        createdAt: req.user.createdAt
+        createdAt: req.user.createdAt,
+        role: req.user.role,
+        company: req.user.company
       }
     }
   });

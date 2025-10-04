@@ -118,8 +118,14 @@ const LoginPage = () => {
     setIsLoading(false);
 
     if (result.success) {
+      // Debug logging
+      console.log('Login successful, user object:', result.user);
+      console.log('User role:', result.user?.role);
+      
       // Redirect based on user role
       const redirectPath = getRoleBasedRedirectPath(result.user);
+      console.log('Redirecting to:', redirectPath);
+      
       navigate(redirectPath, { replace: true });
     } else {
       setError(result.error);

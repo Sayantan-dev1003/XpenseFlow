@@ -48,6 +48,8 @@ app.use(cors({
     const allowedOrigins = [
       process.env.CLIENT_URL,
       'http://localhost:3000',
+      'http://localhost:5173', // Vite dev server
+      'http://localhost:3001', // Alternative dev port
     ];
     
     if (allowedOrigins.includes(origin)) {

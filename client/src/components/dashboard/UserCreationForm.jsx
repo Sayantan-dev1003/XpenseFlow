@@ -148,7 +148,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
                 onChange={handleChange}
                 error={errors.firstName}
                 required
-                className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl"
+                className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
               />
             </div>
             <div>
@@ -161,7 +161,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
                 onChange={handleChange}
                 error={errors.lastName}
                 required
-                className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl"
+                className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
               />
             </div>
           </div>
@@ -177,7 +177,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
               onChange={handleChange}
               error={errors.email}
               required
-              className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl"
+              className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
             />
           </div>
 
@@ -191,7 +191,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
                 name="role"
                 value={formData.role}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none"
+                className="w-full px-4 py-3 text-gray-500 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none"
                 required
               >
                 <option value="">Select a role</option>
@@ -219,7 +219,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
                   name="manager"
                   value={formData.manager}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none"
+                  className="w-full px-4 py-3 text-gray-500 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none"
                   required
                 >
                   <option value="">Select a manager</option>

@@ -17,8 +17,12 @@ class UserService {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
-          // Redirect to login if unauthorized
-          window.location.href = '/login';
+          // Only redirect for protected endpoints, not auth check endpoints
+          const url = error.config?.url || '';
+          if (!url.includes('/auth/me')) {
+            // Redirect to login if unauthorized on protected endpoints
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
@@ -27,25 +31,25 @@ class UserService {
 
   // Create new user (Admin only)
   async createUser(userData) {
-    const response = await this.api.post('/users/create', userData);
+    const response = await this.api.post('/user/create', userData);
     return response.data;
   }
 
   // Get all users in company (Admin only)
   async getCompanyUsers() {
-    const response = await this.api.get('/users/company');
+    const response = await this.api.get('/user/company');
     return response.data;
   }
 
   // Get user statistics
   async getUserStats() {
-    const response = await this.api.get('/users/stats');
+    const response = await this.api.get('/user/stats');
     return response.data;
   }
 
   // Change password
   async changePassword(currentPassword, newPassword) {
-    const response = await this.api.post('/users/change-password', {
+    const response = await this.api.put('/user/change-password', {
       currentPassword,
       newPassword
     });
@@ -54,7 +58,7 @@ class UserService {
 
   // Get managers for dropdown
   async getManagers() {
-    const response = await this.api.get('/users/managers');
+    const response = await this.api.get('/user/managers');
     return response.data;
   }
 

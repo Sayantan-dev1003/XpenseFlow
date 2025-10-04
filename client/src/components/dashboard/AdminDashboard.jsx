@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiUsers, FiDollarSign, FiTrendingUp, FiSettings, FiPlus, FiEye } from 'react-icons/fi';
+import { useAuth } from '../../hooks/useAuth';
 import expenseService from '../../api/expenseService';
 import companyService from '../../api/companyService';
 import workflowService from '../../api/workflowService';
@@ -8,6 +9,7 @@ import UserCreationForm from './UserCreationForm';
 import UserList from './UserList';
 
 const AdminDashboard = ({ user }) => {
+  const { handleAuthFailure } = useAuth();
   const [stats, setStats] = useState({
     expenses: { total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 },
     company: { users: { total: 0, admin: 0, manager: 0, employee: 0 } },
@@ -22,26 +24,66 @@ const AdminDashboard = ({ user }) => {
     loadDashboardData();
   }, []);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (retryCount = 0) => {
     try {
       setLoading(true);
       
-      const [expenseStats, companyStats, workflows, pendingExpenses] = await Promise.all([
+      // Use Promise.allSettled to handle partial failures gracefully
+      const results = await Promise.allSettled([
         expenseService.getExpenseStats({ period: 'month' }),
         companyService.getCompanyStats(),
         workflowService.getWorkflows({ limit: 5 }),
         expenseService.getPendingExpenses({ limit: 5 })
       ]);
 
+      // Check if any requests failed with 401
+      const authErrors = results.filter(result => 
+        result.status === 'rejected' && result.reason?.response?.status === 401
+      );
+
+      if (authErrors.length > 0) {
+        console.warn('Authentication failed while loading dashboard data');
+        handleAuthFailure();
+        return;
+      }
+
+      // Process successful results
+      const [expenseStatsResult, companyStatsResult, workflowsResult, pendingExpensesResult] = results;
+
       setStats({
-        expenses: expenseStats.data.stats.summary,
-        company: companyStats.data.stats,
-        workflows: workflows.data.workflows
+        expenses: expenseStatsResult.status === 'fulfilled' ? expenseStatsResult.value.data.stats.summary : { total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 },
+        company: companyStatsResult.status === 'fulfilled' ? companyStatsResult.value.data.stats : { users: { total: 0, admin: 0, manager: 0, employee: 0 } },
+        workflows: workflowsResult.status === 'fulfilled' ? workflowsResult.value.data.workflows : []
       });
 
-      setRecentExpenses(pendingExpenses.data.expenses);
+      setRecentExpenses(pendingExpensesResult.status === 'fulfilled' ? pendingExpensesResult.value.data.expenses : []);
+
+      // Log any non-auth errors
+      results.forEach((result, index) => {
+        if (result.status === 'rejected' && result.reason?.response?.status !== 401) {
+          console.warn(`Failed to load dashboard data for index ${index}:`, result.reason.message);
+        }
+      });
+
     } catch (error) {
       console.error('Failed to load admin dashboard data:', error);
+      
+      // Handle authentication failures
+      if (error.response?.status === 401) {
+        console.warn('Authentication failed while loading dashboard data');
+        handleAuthFailure();
+        return;
+      }
+      
+      // For other errors, retry once if this is the first attempt
+      if (retryCount === 0 && error.code !== 'ERR_NETWORK') {
+        console.log('Retrying dashboard data load...');
+        setTimeout(() => loadDashboardData(1), 2000);
+        return;
+      }
+      
+      // Show empty state for failed loads
+      console.warn('Dashboard data could not be loaded - showing empty state');
     } finally {
       setLoading(false);
     }

@@ -27,7 +27,8 @@ export const useAuthActions = () => {
     resendOTP, 
     googleLogin,
     githubLogin,
-    clearError 
+    clearError,
+    handleAuthFailure
   } = useAuth();
   
   return {
@@ -40,6 +41,7 @@ export const useAuthActions = () => {
     resendOTP,
     googleLogin,
     githubLogin,
-    clearError
+    clearError,
+    handleAuthFailure
   };
 };

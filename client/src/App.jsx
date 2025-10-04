@@ -10,7 +10,6 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
 // Pages
-import HomePage from './pages/HomePage';
 import LandingPage from './pages/LandingPage';
 import ContactSupportPage from './pages/ContactSupportPage';
 import LoginPage from './pages/LoginPage';
@@ -26,45 +25,53 @@ import RoleBasedDashboard from './components/dashboard/RoleBasedDashboard';
 // OAuth Success/Error Pages
 const AuthSuccessPage = () => {
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const refreshToken = urlParams.get('refresh');
-    
-    if (token && refreshToken) {
-      localStorage.setItem('accessToken', token);
-      localStorage.setItem('refreshToken', refreshToken);
-      
-      // Get user info from token to determine redirect path
+    const handleOAuthSuccess = async () => {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userRole = payload.role;
-        
-        let redirectPath = '/dashboard';
-        switch (userRole) {
-          case 'admin':
-            redirectPath = '/admin-dashboard';
-            break;
-          case 'manager':
-            redirectPath = '/manager-dashboard';
-            break;
-          case 'employee':
-            redirectPath = '/employee-dashboard';
-            break;
-          case 'finance':
-            redirectPath = '/finance-dashboard';
-            break;
-          default:
-            redirectPath = '/dashboard';
+        // Since we're using HTTP-only cookies, we need to make an API call to get user info
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/auth/me`, {
+          method: 'GET',
+          credentials: 'include', // Include cookies
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const user = data.data.user;
+          
+          // Determine redirect path based on user role
+          let redirectPath = '/dashboard';
+          switch (user.role) {
+            case 'admin':
+              redirectPath = '/admin-dashboard';
+              break;
+            case 'manager':
+              redirectPath = '/manager-dashboard';
+              break;
+            case 'employee':
+              redirectPath = '/employee-dashboard';
+              break;
+            case 'finance':
+              redirectPath = '/finance-dashboard';
+              break;
+            default:
+              redirectPath = '/dashboard';
+          }
+          
+          window.location.href = redirectPath;
+        } else {
+          // If auth check fails, redirect to login
+          console.error('OAuth success but failed to get user info:', response.status);
+          window.location.href = '/login';
         }
-        
-        window.location.href = redirectPath;
       } catch (error) {
-        console.error('Error parsing token:', error);
-        window.location.href = '/dashboard';
+        console.error('Error during OAuth success handling:', error);
+        window.location.href = '/login';
       }
-    } else {
-      window.location.href = '/login';
-    }
+    };
+
+    handleOAuthSuccess();
   }, []);
 
   return (
@@ -113,7 +120,6 @@ function App() {
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
-              <Route path="/home" element={<HomePage />} />
               <Route path="/contact-support" element={<ContactSupportPage />} />
               <Route 
                 path="/login" 
