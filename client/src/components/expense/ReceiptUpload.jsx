@@ -56,7 +56,19 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
       }
     } catch (error) {
       console.error('OCR processing failed:', error);
-      alert('Failed to process receipt. You can still submit manually.');
+      
+      // Show more user-friendly error messages
+      let errorMessage = 'Failed to process receipt. You can still submit manually.';
+      
+      if (error.message.includes('security') || error.message.includes('CSP')) {
+        errorMessage = 'Browser security settings prevented automatic processing. Please enter the receipt details manually.';
+      } else if (error.message.includes('worker')) {
+        errorMessage = 'OCR service is temporarily unavailable. Please enter the receipt details manually.';
+      } else if (error.message.includes('No text')) {
+        errorMessage = 'Could not read text from this image. Please ensure the image is clear and try again, or enter details manually.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsProcessing(false);
       setOcrProgress(0);

@@ -3,16 +3,43 @@ import Tesseract from 'tesseract.js';
 class OCRService {
   constructor() {
     this.worker = null;
+    this.isInitializing = false;
   }
 
   /**
-   * Initialize Tesseract worker
+   * Initialize Tesseract worker with better error handling
    */
   async initWorker() {
-    if (!this.worker) {
-      this.worker = await Tesseract.createWorker('eng');
+    if (this.worker) {
+      return this.worker;
     }
-    return this.worker;
+
+    if (this.isInitializing) {
+      // Wait for existing initialization to complete
+      while (this.isInitializing) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return this.worker;
+    }
+
+    try {
+      this.isInitializing = true;
+      
+      // Create worker with specific configuration to avoid CSP issues
+      this.worker = await Tesseract.createWorker('eng', 1, {
+        workerPath: 'https://unpkg.com/tesseract.js@5.1.0/dist/worker.min.js',
+        langPath: 'https://tessdata.projectnaptha.com/4.0.0',
+        corePath: 'https://unpkg.com/tesseract.js-core@5.0.0/tesseract-core-simd.wasm.js',
+      });
+      
+      return this.worker;
+    } catch (error) {
+      console.error('Failed to initialize OCR worker:', error);
+      this.worker = null;
+      throw new Error('Failed to initialize OCR engine. Please try again or upload manually.');
+    } finally {
+      this.isInitializing = false;
+    }
   }
 
   /**
@@ -22,6 +49,10 @@ class OCRService {
     try {
       const worker = await this.initWorker();
       
+      if (!worker) {
+        throw new Error('OCR worker not available');
+      }
+      
       const { data: { text } } = await worker.recognize(imageFile, {
         logger: onProgress ? (m) => {
           if (m.status === 'recognizing text') {
@@ -30,10 +61,22 @@ class OCRService {
         } : undefined
       });
 
+      if (!text || text.trim().length === 0) {
+        throw new Error('No text could be extracted from the image');
+      }
+
       return text;
     } catch (error) {
       console.error('OCR extraction failed:', error);
-      throw new Error('Failed to extract text from image');
+      
+      // Provide more specific error messages
+      if (error.message.includes('worker')) {
+        throw new Error('OCR service is not available. Please try again or enter data manually.');
+      } else if (error.message.includes('CSP') || error.message.includes('Content Security Policy')) {
+        throw new Error('Browser security settings are blocking OCR. Please enter data manually.');
+      } else {
+        throw new Error('Failed to extract text from image. Please try again or enter data manually.');
+      }
     }
   }
 
@@ -138,17 +181,86 @@ class OCRService {
   }
 
   /**
+   * Fallback OCR method using Tesseract without workers
+   */
+  async extractTextFallback(imageFile, onProgress = null) {
+    try {
+      console.log('Starting fallback OCR extraction for file:', imageFile.name);
+      
+      // Use Tesseract.recognize directly without creating a worker
+      const result = await Tesseract.recognize(imageFile, 'eng', {
+        logger: (m) => {
+          console.log('OCR Progress:', m);
+          if (onProgress && m.status === 'recognizing text') {
+            onProgress(Math.round(m.progress * 100));
+          }
+        }
+      });
+
+      console.log('OCR Result:', result);
+      const text = result.data.text;
+
+      if (!text || text.trim().length === 0) {
+        throw new Error('No text could be extracted from the image');
+      }
+
+      console.log('Extracted text:', text.substring(0, 100) + '...');
+      return text;
+    } catch (error) {
+      console.error('Fallback OCR extraction failed:', error);
+      throw new Error(`Failed to extract text from image: ${error.message}. Please enter data manually.`);
+    }
+  }
+
+  /**
    * Process receipt image and extract structured data
    */
   async processReceipt(imageFile, onProgress = null) {
     try {
-      const text = await this.extractText(imageFile, onProgress);
+      let text;
+      
+      // Always use fallback method in development to avoid CSP issues
+      const isDevelopment = import.meta.env.DEV;
+      
+      if (isDevelopment) {
+        console.log('Using direct Tesseract.recognize method in development');
+        text = await this.extractTextFallback(imageFile, onProgress);
+      } else {
+        try {
+          // Try the worker-based approach first in production
+          text = await this.extractText(imageFile, onProgress);
+        } catch (workerError) {
+          console.warn('Worker-based OCR failed, trying fallback method:', workerError);
+          
+          // Fallback to direct Tesseract.recognize
+          text = await this.extractTextFallback(imageFile, onProgress);
+        }
+      }
+      
       const receiptData = this.extractReceiptData(text);
       
       return receiptData;
     } catch (error) {
       console.error('Receipt processing failed:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Check if CSP is likely blocking web workers
+   */
+  isCSPBlocking() {
+    try {
+      // Try to create a simple blob worker to test CSP
+      const blob = new Blob(['self.postMessage("test");'], { type: 'application/javascript' });
+      const url = URL.createObjectURL(blob);
+      const worker = new Worker(url);
+      worker.terminate();
+      URL.revokeObjectURL(url);
+      return false;
+    } catch (error) {
+      console.log('CSP is blocking web workers:', error);
+      return true;
     }
   }
 
