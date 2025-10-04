@@ -122,15 +122,6 @@ const FeaturesSection = () => {
                   {feature.description}
                 </p>
 
-                {/* Hover Arrow */}
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  whileHover={{ opacity: 1, x: 0 }}
-                  className="flex items-center text-[#6C63FF] font-medium"
-                >
-                  <span className="text-sm">Learn more</span>
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </motion.div>
 
                 {/* Gradient Border Effect */}
                 <div className={`absolute inset-0 bg-gradient-to-r ${feature.gradient} rounded-2xl opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10`}></div>

@@ -12,6 +12,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 // Pages
 import HomePage from './pages/HomePage';
 import LandingPage from './pages/LandingPage';
+import ContactSupportPage from './pages/ContactSupportPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/ForgotPasswordPage';
@@ -82,6 +83,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/home" element={<HomePage />} />
+              <Route path="/contact-support" element={<ContactSupportPage />} />
               <Route 
                 path="/login" 
                 element={

@@ -6,7 +6,6 @@ import FeaturesSection from '../components/landing/FeaturesSection';
 import WorkflowSection from '../components/landing/WorkflowSection';
 import OCRDemoSection from '../components/landing/OCRDemoSection';
 import TestimonialsSection from '../components/landing/TestimonialsSection';
-import PricingSection from '../components/landing/PricingSection';
 import CTASection from '../components/landing/CTASection';
 import Footer from '../components/landing/Footer';
 
@@ -28,7 +27,6 @@ const LandingPage = () => {
         <WorkflowSection />
         <OCRDemoSection />
         <TestimonialsSection />
-        <PricingSection />
         <CTASection />
         <Footer />
       </div>

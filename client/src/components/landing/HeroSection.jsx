@@ -182,28 +182,28 @@ const HeroSection = () => {
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8, duration: 0.6 }}
-                className="absolute -top-4 -right-4 glass-card rounded-lg p-4 w-48"
+                className="absolute -top-4 -right-4 bg-white/15 backdrop-blur-md border border-white/20 rounded-lg p-4 w-48 shadow-xl"
               >
                 <div className="flex items-center space-x-2 mb-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium">Receipt Processed</span>
+                  <span className="text-xs font-medium text-white">Receipt Processed</span>
                 </div>
-                <p className="text-sm text-gray-300">Starbucks Coffee - $4.50</p>
-                <p className="text-xs text-gray-400">AI extracted • 2 min ago</p>
+                <p className="text-sm text-white font-medium">Starbucks Coffee - $4.50</p>
+                <p className="text-xs text-gray-300">AI extracted • 2 min ago</p>
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.0, duration: 0.6 }}
-                className="absolute -bottom-4 -left-4 glass-card rounded-lg p-4 w-44"
+                className="absolute -bottom-4 -left-4 bg-white/15 backdrop-blur-md border border-white/20 rounded-lg p-4 w-44 shadow-xl"
               >
                 <div className="flex items-center space-x-2 mb-2">
                   <div className="w-2 h-2 bg-[#6C63FF] rounded-full animate-pulse"></div>
-                  <span className="text-xs font-medium">Approved</span>
+                  <span className="text-xs font-medium text-white">Approved</span>
                 </div>
-                <p className="text-sm text-gray-300">Travel Expense</p>
-                <p className="text-xs text-gray-400">Manager approved</p>
+                <p className="text-sm text-white font-medium">Travel Expense</p>
+                <p className="text-xs text-gray-300">Manager approved</p>
               </motion.div>
             </motion.div>
           </div>

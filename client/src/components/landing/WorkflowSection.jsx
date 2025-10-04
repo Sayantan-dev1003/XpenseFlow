@@ -6,39 +6,30 @@ const WorkflowSection = () => {
   const workflowSteps = [
     {
       id: 1,
-      title: 'Employee',
-      subtitle: 'Submit Expense',
-      description: 'Upload receipts and fill expense details with AI assistance',
-      icon: User,
-      color: '#6C63FF',
-      actions: ['Upload receipt', 'Auto-fill details', 'Submit for approval']
+      title: 'Submit',
+      description: 'Upload receipts with AI-powered data extraction',
+      icon: Upload,
+      bgColor: 'bg-slate-700/50',
+      iconColor: 'text-blue-400',
+      borderColor: 'border-slate-600/50'
     },
     {
       id: 2,
-      title: 'Manager',
-      subtitle: 'Review & Approve',
-      description: 'Review expense details and approve or request changes',
-      icon: UserCheck,
-      color: '#7A5CFA',
-      actions: ['Review details', 'Check policy', 'Approve/Reject']
+      title: 'Review',
+      description: 'Manager approves or requests changes',
+      icon: Eye,
+      bgColor: 'bg-slate-700/50',
+      iconColor: 'text-emerald-400',
+      borderColor: 'border-slate-600/50'
     },
     {
       id: 3,
-      title: 'Finance',
-      subtitle: 'Process Payment',
-      description: 'Verify compliance and process reimbursement',
-      icon: Building2,
-      color: '#B983FF',
-      actions: ['Verify compliance', 'Process payment', 'Update records']
-    },
-    {
-      id: 4,
-      title: 'Director',
-      subtitle: 'Final Oversight',
-      description: 'High-value expense oversight and audit trail',
-      icon: CheckCircle,
-      color: '#E4D9FF',
-      actions: ['Final review', 'Audit trail', 'Compliance check']
+      title: 'Process',
+      description: 'Automated reimbursement and record keeping',
+      icon: CreditCard,
+      bgColor: 'bg-slate-700/50',
+      iconColor: 'text-purple-400',
+      borderColor: 'border-slate-600/50'
     }
   ];
 
@@ -88,14 +79,14 @@ const WorkflowSection = () => {
           </div>
           
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-poppins mb-6">
-            Seamless approval
+            Simple expense
             <br />
-            <span className="gradient-text">workflow process</span>
+            <span className="gradient-text">approvals</span>
           </h2>
           
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            From submission to reimbursement, every step is automated and tracked. 
-            Experience the most efficient expense approval workflow in the industry.
+            Three simple steps from expense submission to reimbursement. 
+            Streamlined, automated, and audit-ready.
           </p>
         </motion.div>
 
@@ -109,61 +100,47 @@ const WorkflowSection = () => {
         >
           {/* Desktop Layout */}
           <div className="hidden lg:block">
-            <div className="grid grid-cols-4 gap-8 relative">
+            <div className="grid grid-cols-3 gap-12 relative max-w-4xl mx-auto">
               {/* Connecting Lines */}
-              <div className="absolute top-16 left-0 right-0 flex items-center justify-between px-16">
-                {[1, 2, 3].map((index) => (
-                  <motion.div
-                    key={index}
-                    variants={lineVariants}
-                    className="flex-1 h-0.5 bg-gradient-to-r from-[#6C63FF] to-[#B983FF] mx-4 origin-left"
-                  />
-                ))}
+              <div className="absolute top-16 left-0 right-0 flex items-center justify-center">
+                <div className="flex items-center w-full px-16">
+                  {[1, 2].map((index) => (
+                    <motion.div
+                      key={index}
+                      variants={lineVariants}
+                      className="flex-1 h-0.5 bg-slate-600 mx-8 rounded-full"
+                    />
+                  ))}
+                </div>
               </div>
 
               {workflowSteps.map((step, index) => (
                 <motion.div
                   key={step.id}
                   variants={stepVariants}
-                  whileHover={{ y: -10 }}
+                  whileHover={{ y: -5 }}
                   className="relative z-10"
                 >
-                  <div className="glass-card rounded-2xl p-6 text-center hover:bg-white/10 transition-all duration-300 border-2 border-transparent hover:border-white/20">
+                  <div className={`${step.bgColor} ${step.borderColor} border rounded-xl p-6 text-center hover:bg-slate-600/50 transition-all duration-300`}>
                     {/* Step Number */}
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <div className="w-6 h-6 bg-gradient-to-r from-[#6C63FF] to-[#B983FF] rounded-full flex items-center justify-center text-xs font-bold text-white">
+                      <div className="w-6 h-6 bg-slate-600 border border-slate-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
                         {step.id}
                       </div>
                     </div>
 
                     {/* Icon */}
-                    <div 
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 mx-auto"
-                      style={{ backgroundColor: `${step.color}20`, border: `2px solid ${step.color}40` }}
-                    >
-                      <step.icon className="w-8 h-8" style={{ color: step.color }} />
+                    <div className="w-14 h-14 bg-slate-800/50 rounded-xl flex items-center justify-center mb-4 mx-auto border border-slate-600/50">
+                      <step.icon className={`w-7 h-7 ${step.iconColor}`} />
                     </div>
 
                     {/* Content */}
-                    <h3 className="text-xl font-bold font-poppins mb-1 text-white">
+                    <h3 className="text-lg font-bold font-poppins mb-3 text-white">
                       {step.title}
                     </h3>
-                    <p className="text-sm font-medium mb-3" style={{ color: step.color }}>
-                      {step.subtitle}
-                    </p>
-                    <p className="text-gray-300 text-sm mb-4 leading-relaxed">
+                    <p className="text-gray-300 text-sm leading-relaxed">
                       {step.description}
                     </p>
-
-                    {/* Actions */}
-                    <div className="space-y-2">
-                      {step.actions.map((action, actionIndex) => (
-                        <div key={actionIndex} className="flex items-center text-xs text-gray-400">
-                          <div className="w-1.5 h-1.5 bg-[#6C63FF] rounded-full mr-2"></div>
-                          {action}
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -171,25 +148,22 @@ const WorkflowSection = () => {
           </div>
 
           {/* Mobile Layout */}
-          <div className="lg:hidden space-y-6">
+          <div className="lg:hidden space-y-6 max-w-md mx-auto">
             {workflowSteps.map((step, index) => (
               <motion.div
                 key={step.id}
                 variants={stepVariants}
                 className="relative"
               >
-                <div className="glass-card rounded-2xl p-6 hover:bg-white/10 transition-all duration-300">
+                <div className={`${step.bgColor} ${step.borderColor} border rounded-xl p-6 hover:bg-slate-600/50 transition-all duration-300`}>
                   <div className="flex items-start space-x-4">
                     {/* Step Number & Icon */}
                     <div className="flex-shrink-0">
                       <div className="relative">
-                        <div 
-                          className="w-12 h-12 rounded-xl flex items-center justify-center"
-                          style={{ backgroundColor: `${step.color}20`, border: `2px solid ${step.color}40` }}
-                        >
-                          <step.icon className="w-6 h-6" style={{ color: step.color }} />
+                        <div className="w-12 h-12 bg-slate-800/50 rounded-xl flex items-center justify-center border border-slate-600/50">
+                          <step.icon className={`w-6 h-6 ${step.iconColor}`} />
                         </div>
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-r from-[#6C63FF] to-[#B983FF] rounded-full flex items-center justify-center text-xs font-bold text-white">
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-slate-600 border border-slate-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
                           {step.id}
                         </div>
                       </div>
@@ -197,25 +171,12 @@ const WorkflowSection = () => {
 
                     {/* Content */}
                     <div className="flex-1">
-                      <h3 className="text-lg font-bold font-poppins mb-1 text-white">
+                      <h3 className="text-lg font-bold font-poppins mb-2 text-white">
                         {step.title}
                       </h3>
-                      <p className="text-sm font-medium mb-2" style={{ color: step.color }}>
-                        {step.subtitle}
-                      </p>
-                      <p className="text-gray-300 text-sm mb-3 leading-relaxed">
+                      <p className="text-gray-300 text-sm leading-relaxed">
                         {step.description}
                       </p>
-
-                      {/* Actions */}
-                      <div className="space-y-1">
-                        {step.actions.map((action, actionIndex) => (
-                          <div key={actionIndex} className="flex items-center text-xs text-gray-400">
-                            <div className="w-1.5 h-1.5 bg-[#6C63FF] rounded-full mr-2"></div>
-                            {action}
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -227,7 +188,7 @@ const WorkflowSection = () => {
                     whileInView={{ height: 24 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5, delay: 0.2 + index * 0.1 }}
-                    className="w-0.5 bg-gradient-to-b from-[#6C63FF] to-[#B983FF] mx-auto"
+                    className="w-0.5 bg-slate-600 mx-auto"
                   />
                 )}
               </motion.div>
@@ -243,19 +204,19 @@ const WorkflowSection = () => {
           transition={{ duration: 0.6, delay: 0.8 }}
           className="text-center mt-16"
         >
-          <div className="glass-card rounded-2xl p-8 max-w-2xl mx-auto">
+          <div className="bg-slate-700/30 border border-slate-600/50 rounded-xl p-8 max-w-2xl mx-auto">
             <h3 className="text-2xl font-bold font-poppins mb-4 text-white">
-              Ready to streamline your workflow?
+              Ready to simplify your expenses?
             </h3>
             <p className="text-gray-300 mb-6">
-              Join thousands of companies already using XpenseFlow to automate their expense management.
+              Start with our free plan and scale as you grow.
             </p>
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(108, 99, 255, 0.5)' }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-gradient-to-r from-[#6C63FF] to-[#B983FF] text-white px-8 py-3 rounded-xl font-semibold flex items-center space-x-2 mx-auto glow-purple transition-all duration-300"
+              className="bg-gradient-to-r from-[#6C63FF] to-[#B983FF] text-white px-8 py-3 rounded-xl font-semibold flex items-center space-x-2 mx-auto transition-all duration-300"
             >
-              <span>Start Free Trial</span>
+              <span>Get Started Free</span>
               <ArrowRight className="w-5 h-5" />
             </motion.button>
           </div>
@@ -263,8 +224,8 @@ const WorkflowSection = () => {
       </div>
 
       {/* Background Decoration */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-l from-[#6C63FF] to-[#B983FF] rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
-      <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-r from-[#7A5CFA] to-[#E4D9FF] rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-slate-600 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-slate-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
     </section>
   );
 };
