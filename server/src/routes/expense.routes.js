@@ -2,6 +2,7 @@ const express = require('express');
 const { controller: expenseController, upload } = require('../controllers/expense.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 const { validate } = require('../middleware/validation.middleware');
+const { parseFormData } = require('../middleware/formdata.middleware');
 const Joi = require('joi');
 
 const router = express.Router();
@@ -64,7 +65,7 @@ const querySchema = {
 router.use(authenticate);
 
 // Expense submission routes
-router.post('/', upload, validate(submitExpenseSchema), expenseController.submitExpense);
+router.post('/', upload, parseFormData, validate(submitExpenseSchema), expenseController.submitExpense);
 router.get('/my-expenses', validate(querySchema), expenseController.getUserExpenses);
 
 // Expense management routes

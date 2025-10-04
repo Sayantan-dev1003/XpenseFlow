@@ -118,15 +118,19 @@ const ExpenseSubmissionForm = () => {
     
     // Currency
     if (ocrData.extractedCurrency) {
-      const currencyCode = ocrData.extractedCurrency;
+      const currencyCode = ocrData.extractedCurrency.toUpperCase();
+      console.log('🪙 Detected currency:', currencyCode, 'Available currencies:', currencies);
       const currencyExists = currencies.includes(currencyCode);
       if (currencyExists) {
         updates.currency = {
           code: currencyCode,
           name: currencyCode,
-          symbol: currencyCode === 'USD' ? '$' : currencyCode === 'EUR' ? '€' : currencyCode === 'GBP' ? '£' : '₹'
+          symbol: currencyCode === 'USD' ? '$' : currencyCode === 'EUR' ? '€' : currencyCode === 'GBP' ? '£' : currencyCode === 'INR' ? '₹' : currencyCode
         };
         filledFields.add('currency');
+        console.log('✅ Currency updated to:', updates.currency);
+      } else {
+        console.log('❌ Currency not supported:', currencyCode);
       }
     }
     
@@ -224,18 +228,71 @@ const ExpenseSubmissionForm = () => {
 
     try {
       const expenseData = {
-        ...formData,
+        title: formData.title.trim(),
+        description: formData.description?.trim() || '',
         amount: parseFloat(formData.amount),
-        date: new Date(formData.date).toISOString()
+        currency: {
+          code: formData.currency.code.toUpperCase(),
+          name: formData.currency.name,
+          symbol: formData.currency.symbol
+        },
+        category: formData.category.trim(),
+        date: new Date(formData.date).toISOString(),
+        tags: formData.tags || [],
+        notes: formData.notes?.trim() || ''
       };
 
+      console.log('📤 Submitting expense data:', expenseData);
+      console.log('📤 Expense data types:', {
+        title: typeof expenseData.title,
+        amount: typeof expenseData.amount,
+        currency: typeof expenseData.currency,
+        category: typeof expenseData.category,
+        date: typeof expenseData.date,
+        tags: typeof expenseData.tags,
+        description: typeof expenseData.description,
+        notes: typeof expenseData.notes
+      });
+      console.log('📤 Currency object:', expenseData.currency);
+      console.log('📤 Date value:', expenseData.date);
+      console.log('📤 Tags array:', expenseData.tags);
+      
       await expenseService.submitExpense(expenseData, selectedFile);
       
       toast.success('Expense submitted successfully!');
       navigate('/dashboard');
     } catch (error) {
       console.error('Failed to submit expense:', error);
-      toast.error(error.response?.data?.message || 'Failed to submit expense');
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Validation errors:', error.response?.data?.errors);
+      
+      let errorMessage = 'Failed to submit expense';
+      if (error.response?.data?.errors) {
+        // Handle validation errors
+        const validationErrors = error.response.data.errors;
+        console.error('Full validation errors object:', JSON.stringify(validationErrors, null, 2));
+        
+        // Extract detailed error messages
+        let errorMessages = [];
+        if (validationErrors.body && Array.isArray(validationErrors.body)) {
+          errorMessages = validationErrors.body.map(err => `${err.field}: ${err.message}`);
+          console.error('Body validation errors:', validationErrors.body);
+        } else {
+          errorMessages = Object.entries(validationErrors).map(([field, msg]) => `${field}: ${msg}`);
+        }
+        
+        errorMessage = `Validation failed: ${errorMessages.join(', ')}`;
+        console.error('Detailed validation errors:', validationErrors);
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.details) {
+        errorMessage = `Validation error: ${error.response.data.details}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
