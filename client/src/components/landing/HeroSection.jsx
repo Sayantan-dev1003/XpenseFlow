@@ -45,16 +45,7 @@ const HeroSection = () => {
           className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center"
         >
           {/* Left Content */}
-          <div className="text-center lg:text-left">
-            <motion.div
-              variants={itemVariants}
-              className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[#6C63FF]/20 to-[#B983FF]/20 border border-[#6C63FF]/30 mb-6"
-            >
-              <span className="text-sm font-medium text-[#E4D9FF]">
-                🚀 Trusted by 10,000+ finance teams
-              </span>
-            </motion.div>
-
+          <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0 mb-12 lg:mt-10">
             <motion.h1
               variants={itemVariants}
               className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold font-poppins leading-tight mb-6"
