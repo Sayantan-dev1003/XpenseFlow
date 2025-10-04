@@ -10,12 +10,24 @@ class OTPService {
 
   // Create email transporter
   createEmailTransporter() {
+    // Check if email credentials are properly configured
+    if (!config.EMAIL_USER || !config.EMAIL_PASS) {
+      console.error('Email credentials not properly configured. Please check EMAIL_USER and EMAIL_PASS environment variables.');
+      return null;
+    }
+
     return nodemailer.createTransport({
       service: config.EMAIL_SERVICE || 'gmail',
       auth: {
         user: config.EMAIL_USER,
         pass: config.EMAIL_PASS
-      }
+      },
+      // Add additional options for better error handling
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3,
+      rateDelta: 20000,
+      rateLimit: 5
     });
   }
 
@@ -88,7 +100,8 @@ class OTPService {
 
       // Check if email service is configured
       if (!this.emailTransporter) {
-        throw new Error('Email service is not configured. Please contact administrator.');
+        console.error('Email transporter not available. Email credentials may not be configured properly.');
+        throw new Error('Email service not configured. Please contact administrator to configure email service.');
       }
 
       // Get email template
@@ -96,9 +109,9 @@ class OTPService {
       
       // Send email
       const mailOptions = {
-        from: config.EMAIL_USER,
+        from: `"XpenseFlow" <${config.EMAIL_USER}>`,
         to: email,
-        subject: `AuthFlow ${type === 'login' ? 'Login' : 'Verification'} Code`,
+        subject: `XpenseFlow ${type === 'login' ? 'Login' : 'Verification'} Code`,
         html: htmlContent
       };
 
@@ -112,7 +125,21 @@ class OTPService {
       };
     } catch (error) {
       console.error('Email OTP sending error:', error);
-      throw new Error(`Failed to send email OTP: ${error.message}`);
+      
+      // Provide more specific error messages
+      if (error.code === 'EAUTH') {
+        console.error('Email authentication failed. Please check EMAIL_USER and EMAIL_PASS in environment variables.');
+        throw new Error('Email authentication failed. Please contact administrator to configure email service.');
+      } else if (error.code === 'ECONNECTION') {
+        console.error('Email connection failed. Please check internet connection and email service configuration.');
+        throw new Error('Email service temporarily unavailable. Please try again later.');
+      } else if (error.message.includes('535-5.7.8')) {
+        console.error('Gmail authentication error: Username and Password not accepted');
+        throw new Error('Email service authentication failed. Please contact administrator to fix email configuration.');
+      } else {
+        console.error('Unexpected email error:', error.message);
+        throw new Error(`Failed to send email OTP: ${error.message}`);
+      }
     }
   }
 
@@ -197,7 +224,7 @@ class OTPService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">AuthFlow</div>
+            <div class="logo">XpenseFlow</div>
             <h1>${title}</h1>
           </div>
           
@@ -210,14 +237,14 @@ class OTPService {
           </div>
           
           <div class="warning">
-            <strong>Security Notice:</strong> Never share this OTP with anyone. AuthFlow will never ask for your OTP via phone or email.
+            <strong>Security Notice:</strong> Never share this OTP with anyone. XpenseFlow will never ask for your OTP via phone or email.
           </div>
           
           <p>If you didn't request this ${type === 'verification' ? 'verification' : 'password reset'}, please ignore this email.</p>
           
           <div class="footer">
-            <p>This is an automated message from AuthFlow.</p>
-            <p>© 2024 AuthFlow. All rights reserved.</p>
+            <p>This is an automated message from XpenseFlow.</p>
+            <p>© 2024 XpenseFlow. All rights reserved.</p>
           </div>
         </div>
       </body>

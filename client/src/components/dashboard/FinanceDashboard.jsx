@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { FiDollarSign, FiTrendingUp, FiFileText, FiCheckCircle, FiXCircle, FiDownload } from 'react-icons/fi';
+import { FiDollarSign, FiTrendingUp, FiFileText, FiCheckCircle, FiXCircle, FiDownload, FiLogOut } from 'react-icons/fi';
+import { useAuth } from '../../hooks/useAuth';
 import expenseService from '../../api/expenseService';
 
 const FinanceDashboard = ({ user }) => {
+  const { logout } = useAuth();
   const [stats, setStats] = useState({
     expenses: { total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 },
     budget: { allocated: 0, spent: 0, remaining: 0 },
@@ -107,8 +109,19 @@ const FinanceDashboard = ({ user }) => {
     <div className="p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Finance Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {user.firstName}! Manage company finances and expense approvals.</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Finance Dashboard</h1>
+            <p className="text-gray-600">Welcome back, {user.firstName}! Manage company finances and expense approvals.</p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+          >
+            <FiLogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

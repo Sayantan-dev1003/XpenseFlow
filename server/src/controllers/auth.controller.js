@@ -260,12 +260,18 @@ const sendLoginOTP = asyncHandler(async (req, res) => {
       }
     });
   } catch (error) {
-    // Handle remaining errors
+    // Handle specific error types
     if (error.message.includes('SMS service is currently unavailable') || 
         error.message.includes('SMS service is temporarily unavailable')) {
       throw new AppError(error.message, 503);
     } else if (error.message.includes('Invalid phone number format')) {
       throw new AppError(error.message, 400);
+    } else if (error.message.includes('Email service not configured') ||
+               error.message.includes('Email authentication failed') ||
+               error.message.includes('Email service authentication failed')) {
+      throw new AppError('Email service is currently unavailable. Please contact administrator or try SMS verification.', 503);
+    } else if (error.message.includes('Email service temporarily unavailable')) {
+      throw new AppError('Email service is temporarily unavailable. Please try again later or contact administrator.', 503);
     } else {
       // Re-throw other errors as they are
       throw error;

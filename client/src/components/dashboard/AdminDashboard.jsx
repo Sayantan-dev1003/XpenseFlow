@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiUsers, FiDollarSign, FiTrendingUp, FiSettings, FiPlus, FiEye } from 'react-icons/fi';
+import { FiUsers, FiDollarSign, FiTrendingUp, FiSettings, FiPlus, FiEye, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../../hooks/useAuth';
 import expenseService from '../../api/expenseService';
 import companyService from '../../api/companyService';
@@ -9,7 +9,7 @@ import UserCreationForm from './UserCreationForm';
 import UserList from './UserList';
 
 const AdminDashboard = ({ user }) => {
-  const { handleAuthFailure } = useAuth();
+  const { handleAuthFailure, logout } = useAuth();
   const [stats, setStats] = useState({
     expenses: { total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 },
     company: { users: { total: 0, admin: 0, manager: 0, employee: 0 } },
@@ -128,8 +128,19 @@ const AdminDashboard = ({ user }) => {
     <div className="p-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {user.firstName}! Here's your company overview.</p>
+        <div className="flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-600">Welcome back, {user.firstName}! Here's your company overview.</p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+          >
+            <FiLogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}

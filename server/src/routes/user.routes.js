@@ -18,5 +18,6 @@ router.get('/stats', userController.getUserStats);
 router.post('/create', ...userController.createUser);
 router.get('/company', userController.getCompanyUsers);
 router.get('/managers', userController.getManagers);
+router.post('/test-email', userController.testEmailConfig);
 
 module.exports = router;

@@ -88,7 +88,15 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
       const result = await userService.createUser(formData);
       
       if (result.success) {
-        toast.success('User created successfully! Welcome email sent.');
+        // Check email status
+        if (result.data.emailStatus && result.data.emailStatus.sent) {
+          toast.success('User created successfully! Welcome email sent.');
+        } else if (result.data.emailStatus && !result.data.emailStatus.sent) {
+          toast.warning(`User created successfully, but welcome email could not be sent. ${result.data.emailStatus.error || 'Please contact the administrator.'}`);
+        } else {
+          toast.success('User created successfully!');
+        }
+        
         onUserCreated && onUserCreated(result.data.user);
         onClose();
         

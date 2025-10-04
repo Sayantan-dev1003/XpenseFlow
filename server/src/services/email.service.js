@@ -8,18 +8,36 @@ class EmailService {
 
   // Create email transporter
   createTransporter() {
+    // Check if email credentials are properly configured
+    if (!config.EMAIL_USER || !config.EMAIL_PASS) {
+      console.error('Email credentials not properly configured. Please check EMAIL_USER and EMAIL_PASS environment variables.');
+      return null;
+    }
+
     return nodemailer.createTransport({
       service: config.EMAIL_SERVICE || 'gmail',
       auth: {
         user: config.EMAIL_USER,
         pass: config.EMAIL_PASS
-      }
+      },
+      // Add additional options for better error handling
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3,
+      rateDelta: 20000,
+      rateLimit: 5
     });
   }
 
   // Send welcome email for new users
   async sendWelcomeEmail(email, firstName, tempPassword) {
     try {
+      // Check if transporter is available
+      if (!this.transporter) {
+        console.error('Email transporter not available. Email credentials may not be configured properly.');
+        throw new Error('Email service not configured. Please contact administrator.');
+      }
+
       const loginUrl = `${config.CLIENT_URL}/login`;
       const html = this.getWelcomeEmailTemplate(firstName, email, tempPassword, loginUrl);
       
@@ -31,11 +49,22 @@ class EmailService {
       };
 
       const result = await this.transporter.sendMail(mailOptions);
-      console.log('Welcome email sent:', result.messageId);
+      console.log('Welcome email sent successfully:', result.messageId);
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('Welcome email error:', error);
-      throw new Error('Failed to send welcome email');
+      
+      // Provide more specific error messages
+      if (error.code === 'EAUTH') {
+        console.error('Email authentication failed. Please check EMAIL_USER and EMAIL_PASS in environment variables.');
+        throw new Error('Email authentication failed. Please contact administrator to configure email service.');
+      } else if (error.code === 'ECONNECTION') {
+        console.error('Email connection failed. Please check internet connection and email service configuration.');
+        throw new Error('Email service temporarily unavailable. Please try again later.');
+      } else {
+        console.error('Unexpected email error:', error.message);
+        throw new Error('Failed to send welcome email. Please contact administrator.');
+      }
     }
   }
 

@@ -56,16 +56,23 @@ const createUser = asyncHandler(async (req, res) => {
   await user.save();
 
   // Send welcome email with login credentials
+  let emailSent = false;
+  let emailError = null;
   try {
     await emailService.sendWelcomeEmail(user.email, user.firstName, tempPassword);
+    emailSent = true;
+    console.log(`Welcome email sent successfully to ${user.email}`);
   } catch (error) {
     console.error('Failed to send welcome email:', error);
-    // Don't fail the user creation if email fails
+    emailError = error.message;
+    // Don't fail the user creation if email fails, but log the error
   }
 
   res.status(201).json({
     success: true,
-    message: 'User created successfully',
+    message: emailSent 
+      ? 'User created successfully and welcome email sent' 
+      : 'User created successfully, but welcome email could not be sent',
     data: {
       user: {
         id: user._id,
@@ -74,6 +81,10 @@ const createUser = asyncHandler(async (req, res) => {
         email: user.email,
         role: user.role,
         manager: user.manager
+      },
+      emailStatus: {
+        sent: emailSent,
+        error: emailError
       }
     }
   });
@@ -195,11 +206,37 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   });
 });
 
+// Test email configuration (Admin only)
+const testEmailConfig = asyncHandler(async (req, res) => {
+  // Only admins can test email configuration
+  if (!req.user.isAdmin()) {
+    throw new AppError('Only administrators can test email configuration', 403);
+  }
+
+  const testEmail = req.body.email || req.user.email;
+  
+  try {
+    await emailService.sendWelcomeEmail(testEmail, 'Test User', '123456');
+    res.status(200).json({
+      success: true,
+      message: 'Test email sent successfully',
+      data: { testEmail }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send test email',
+      error: error.message
+    });
+  }
+});
+
 module.exports = {
   createUser: [validate(createUserSchema), createUser],
   getCompanyUsers,
   getManagers,
   changePassword: [validate(changePasswordSchema), changePassword],
   getUserStats,
-  getCurrentUser
+  getCurrentUser,
+  testEmailConfig
 };

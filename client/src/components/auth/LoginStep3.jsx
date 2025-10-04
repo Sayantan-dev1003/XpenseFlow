@@ -82,7 +82,7 @@ const LoginStep3 = ({ userData, method, maskedContact, onVerify, onBack, onResen
               placeholder="000000"
               value={otp}
               onChange={handleOtpChange}
-              className="w-full px-4 py-3 text-center text-2xl font-mono border border-gray-300 rounded-lg outline-purple-500 tracking-widest"
+              className="w-full px-4 py-3 text-gray-500 text-center text-2xl font-mono border border-gray-300 rounded-lg outline-purple-500 tracking-widest"
               maxLength={6}
               required
             />
