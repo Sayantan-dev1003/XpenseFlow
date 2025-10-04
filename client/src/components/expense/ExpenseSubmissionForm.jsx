@@ -97,29 +97,48 @@ const ExpenseSubmissionForm = () => {
   };
 
   const handleReceiptData = (ocrData) => {
+    console.log('📋 Received OCR data:', ocrData);
+    
     // Auto-fill form with OCR extracted data
+    const updates = {};
+    
     if (ocrData.extractedAmount) {
-      setFormData(prev => ({
-        ...prev,
-        amount: ocrData.extractedAmount.toString()
-      }));
+      updates.amount = ocrData.extractedAmount.toString();
     }
     
     if (ocrData.extractedDate) {
-      setFormData(prev => ({
-        ...prev,
-        date: new Date(ocrData.extractedDate).toISOString().split('T')[0]
-      }));
+      updates.date = new Date(ocrData.extractedDate).toISOString().split('T')[0];
     }
     
     if (ocrData.extractedVendor && !formData.title) {
-      setFormData(prev => ({
-        ...prev,
-        title: `Expense from ${ocrData.extractedVendor}`
-      }));
+      updates.title = `Expense from ${ocrData.extractedVendor}`;
+    }
+    
+    if (ocrData.extractedCategory) {
+      // Check if the extracted category matches available categories
+      const matchingCategory = categories.find(cat => 
+        cat.name.toLowerCase() === ocrData.extractedCategory.toLowerCase()
+      );
+      if (matchingCategory) {
+        updates.category = matchingCategory.name;
+      }
+    }
+    
+    if (ocrData.extractedDescription) {
+      updates.description = ocrData.extractedDescription;
     }
 
-    toast.success('Receipt data extracted successfully!');
+    // Apply all updates at once
+    if (Object.keys(updates).length > 0) {
+      setFormData(prev => ({
+        ...prev,
+        ...updates
+      }));
+      
+      toast.success(`Receipt data extracted successfully! (${ocrData.confidence}% confidence)`);
+    } else {
+      toast.info('Receipt processed, but no data could be extracted automatically.');
+    }
   };
 
   const validateForm = () => {
