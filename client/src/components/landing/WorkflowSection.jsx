@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { User, UserCheck, Building2, CheckCircle, ArrowRight, Upload, Eye, CreditCard } from 'lucide-react';
+import { User, UserCheck, Building2, ArrowRight, Upload, Eye, CreditCard, ScanLine } from 'lucide-react';
 
 const WorkflowSection = () => {
   const workflowSteps = [
@@ -8,37 +8,37 @@ const WorkflowSection = () => {
       id: 1,
       title: 'Employee',
       subtitle: 'Submit Expense',
-      description: 'Upload receipts and fill expense details with AI assistance',
+      description: 'Review OCR data and submit expense for approval',
       icon: User,
-      color: '#6C63FF',
-      actions: ['Upload receipt', 'Auto-fill details', 'Submit for approval']
+      color: '#7A5CFA',
+      actions: ['Submit receipt', 'Add details', 'Submit for approval']
     },
     {
       id: 2,
+      title: 'OCR Processing',
+      subtitle: 'Receipt Scanning',
+      description: 'Automated optical character recognition extracts data from receipts',
+      icon: ScanLine,
+      color: '#6C63FF',
+      actions: ['Scan receipt', 'Extract data', 'Validate information']
+    },
+    {
+      id: 3,
       title: 'Manager',
       subtitle: 'Review & Approve',
       description: 'Review expense details and approve or request changes',
       icon: UserCheck,
-      color: '#7A5CFA',
+      color: '#B983FF',
       actions: ['Review details', 'Check policy', 'Approve/Reject']
     },
     {
-      id: 3,
+      id: 4,
       title: 'Finance',
       subtitle: 'Process Payment',
       description: 'Verify compliance and process reimbursement',
       icon: Building2,
-      color: '#B983FF',
-      actions: ['Verify compliance', 'Process payment', 'Update records']
-    },
-    {
-      id: 4,
-      title: 'Director',
-      subtitle: 'Final Oversight',
-      description: 'High-value expense oversight and audit trail',
-      icon: CheckCircle,
       color: '#E4D9FF',
-      actions: ['Final review', 'Audit trail', 'Compliance check']
+      actions: ['Verify compliance', 'Process payment', 'Update records']
     }
   ];
 
@@ -62,14 +62,6 @@ const WorkflowSection = () => {
     }
   };
 
-  const lineVariants = {
-    hidden: { scaleX: 0 },
-    visible: {
-      scaleX: 1,
-      transition: { duration: 1, delay: 0.5, ease: "easeInOut" }
-    }
-  };
-
   return (
     <section id="workflow" className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -81,20 +73,14 @@ const WorkflowSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[#6C63FF]/20 to-[#B983FF]/20 border border-[#6C63FF]/30 mb-6">
-            <span className="text-sm font-medium text-[#E4D9FF]">
-              🔄 Smart Workflow
-            </span>
-          </div>
-          
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-poppins mb-6">
-            Seamless approval
+            Automated expense
             <br />
             <span className="gradient-text">workflow process</span>
           </h2>
           
           <p className="text-xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
-            From submission to reimbursement, every step is automated and tracked. 
+            From OCR scanning to reimbursement, every step is automated and tracked. 
             Experience the most efficient expense approval workflow in the industry.
           </p>
         </motion.div>
@@ -110,18 +96,7 @@ const WorkflowSection = () => {
           {/* Desktop Layout */}
           <div className="hidden lg:block">
             <div className="grid grid-cols-4 gap-8 relative">
-              {/* Connecting Lines */}
-              <div className="absolute top-16 left-0 right-0 flex items-center justify-between px-16">
-                {[1, 2, 3].map((index) => (
-                  <motion.div
-                    key={index}
-                    variants={lineVariants}
-                    className="flex-1 h-0.5 bg-gradient-to-r from-[#6C63FF] to-[#B983FF] mx-4 origin-left"
-                  />
-                ))}
-              </div>
-
-              {workflowSteps.map((step, index) => (
+              {workflowSteps.map((step) => (
                 <motion.div
                   key={step.id}
                   variants={stepVariants}
@@ -262,7 +237,6 @@ const WorkflowSection = () => {
         </motion.div>
       </div>
 
-      {/* Background Decoration */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-l from-[#6C63FF] to-[#B983FF] rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-gradient-to-r from-[#7A5CFA] to-[#E4D9FF] rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
     </section>

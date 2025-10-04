@@ -38,28 +38,6 @@ const TestimonialsSection = () => {
       delay: 0.3
     }
   ];
-
-  const stats = [
-    {
-      icon: Building2,
-      value: '10,000+',
-      label: 'Companies Trust Us',
-      gradient: 'from-[#6C63FF] to-[#7A5CFA]'
-    },
-    {
-      icon: Users,
-      value: '500K+',
-      label: 'Active Users',
-      gradient: 'from-[#7A5CFA] to-[#B983FF]'
-    },
-    {
-      icon: TrendingUp,
-      value: '99.2%',
-      label: 'Customer Satisfaction',
-      gradient: 'from-[#B983FF] to-[#E4D9FF]'
-    }
-  ];
-
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -91,12 +69,6 @@ const TestimonialsSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[#6C63FF]/20 to-[#B983FF]/20 border border-[#6C63FF]/30 mb-6">
-            <span className="text-sm font-medium text-[#E4D9FF]">
-              💬 Customer Stories
-            </span>
-          </div>
-          
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-poppins mb-6">
             Trusted by forward-thinking
             <br />
@@ -107,37 +79,6 @@ const TestimonialsSection = () => {
             Join thousands of companies that have revolutionized their expense management 
             with XpenseFlow's intelligent automation and seamless workflows.
           </p>
-        </motion.div>
-
-        {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid sm:grid-cols-3 gap-6 mb-16"
-        >
-          {stats.map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-              whileHover={{ y: -5 }}
-              className="text-center"
-            >
-              <div className="glass-card rounded-2xl p-6 hover:bg-white/10 transition-all duration-300">
-                <div className={`w-12 h-12 bg-gradient-to-r ${stat.gradient} rounded-xl flex items-center justify-center mx-auto mb-4`}>
-                  <stat.icon className="w-6 h-6 text-white" />
-                </div>
-                <div className={`text-3xl font-bold font-poppins mb-2 bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}>
-                  {stat.value}
-                </div>
-                <p className="text-gray-300 font-medium">{stat.label}</p>
-              </div>
-            </motion.div>
-          ))}
         </motion.div>
 
         {/* Testimonials Grid */}

@@ -1,12 +1,10 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import Navbar from '../components/landing/Navbar';
 import HeroSection from '../components/landing/HeroSection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import WorkflowSection from '../components/landing/WorkflowSection';
-import OCRDemoSection from '../components/landing/OCRDemoSection';
 import TestimonialsSection from '../components/landing/TestimonialsSection';
-import PricingSection from '../components/landing/PricingSection';
+import FAQSection from '../components/landing/FAQSection';
 import CTASection from '../components/landing/CTASection';
 import Footer from '../components/landing/Footer';
 
@@ -26,9 +24,8 @@ const LandingPage = () => {
         <HeroSection />
         <FeaturesSection />
         <WorkflowSection />
-        <OCRDemoSection />
         <TestimonialsSection />
-        <PricingSection />
+        <FAQSection />
         <CTASection />
         <Footer />
       </div>

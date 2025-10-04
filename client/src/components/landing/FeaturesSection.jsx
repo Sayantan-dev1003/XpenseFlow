@@ -71,12 +71,6 @@ const FeaturesSection = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-16"
         >
-          <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-[#6C63FF]/20 to-[#B983FF]/20 border border-[#6C63FF]/30 mb-6">
-            <span className="text-sm font-medium text-[#E4D9FF]">
-              ✨ Powerful Features
-            </span>
-          </div>
-          
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-poppins mb-6">
             Everything you need to
             <br />
@@ -97,7 +91,7 @@ const FeaturesSection = () => {
           viewport={{ once: true }}
           className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16"
         >
-          {features.map((feature, index) => (
+          {features.map((feature) => (
             <motion.div
               key={feature.title}
               variants={cardVariants}
