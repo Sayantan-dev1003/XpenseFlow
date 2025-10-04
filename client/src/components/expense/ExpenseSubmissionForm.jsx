@@ -214,7 +214,7 @@ const ExpenseSubmissionForm = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`block w-full px-3 py-2 text-gray-500 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                       errors.title ? 'border-red-300' : 'border-gray-300'
                     }`}
                     placeholder="Enter expense title"
@@ -237,10 +237,10 @@ const ExpenseSubmissionForm = () => {
                     onChange={handleInputChange}
                     step="0.01"
                     min="0"
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`block w-full px-3 py-2 text-gray-500 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                       errors.amount ? 'border-red-300' : 'border-gray-300'
                     }`}
-                    placeholder="0.00"
+                    placeholder="Enter amount"
                   />
                   <FiDollarSign className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                 </div>
@@ -256,7 +256,7 @@ const ExpenseSubmissionForm = () => {
                   name="currency"
                   value={formData.currency.code}
                   onChange={handleCurrencyChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                 >
                   {currencies.map((currency) => (
                     <option key={currency} value={currency}>
@@ -276,7 +276,7 @@ const ExpenseSubmissionForm = () => {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`block w-full px-3 py-2 text-gray-500 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                       errors.category ? 'border-red-300' : 'border-gray-300'
                     }`}
                   >
@@ -303,7 +303,7 @@ const ExpenseSubmissionForm = () => {
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
+                    className={`block w-full px-3 py-2 text-gray-500 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
                       errors.date ? 'border-red-300' : 'border-gray-300'
                     }`}
                   />
@@ -322,7 +322,7 @@ const ExpenseSubmissionForm = () => {
                   rows={3}
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter expense description"
                 />
               </div>
@@ -337,7 +337,7 @@ const ExpenseSubmissionForm = () => {
                   name="tags"
                   value={formData.tags.join(', ')}
                   onChange={handleTagsChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter tags separated by commas"
                 />
                 <p className="mt-1 text-sm text-gray-500">Separate multiple tags with commas</p>
@@ -350,10 +350,10 @@ const ExpenseSubmissionForm = () => {
                 <textarea
                   id="notes"
                   name="notes"
-                  rows={3}
+                  rows={1}
                   value={formData.notes}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="mt-1 block w-full px-3 py-2 text-gray-500 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Additional notes"
                 />
               </div>
