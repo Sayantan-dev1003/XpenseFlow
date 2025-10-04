@@ -11,6 +11,7 @@ import ProtectedRoute from './components/layout/ProtectedRoute';
 
 // Pages
 import HomePage from './pages/HomePage';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/ForgotPasswordPage';
@@ -79,7 +80,8 @@ function App() {
           <main className="flex-grow">
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<HomePage />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/home" element={<HomePage />} />
               <Route 
                 path="/login" 
                 element={
