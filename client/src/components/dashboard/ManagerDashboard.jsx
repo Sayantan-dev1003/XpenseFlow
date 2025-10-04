@@ -41,24 +41,40 @@ const ManagerDashboard = ({ user }) => {
 
   const handleApproveExpense = async (expenseId) => {
     try {
-      await expenseService.processExpense(expenseId, 'approved', 'Approved by manager');
+      const result = await expenseService.processExpense(expenseId, 'approved', 'Approved by manager');
+      
+      // Show success message based on approval status
+      if (result.data.expense.status === 'approved') {
+        alert('✅ Expense fully approved! Both manager and finance have approved.');
+      } else if (result.data.expense.status === 'processing') {
+        alert('✅ Expense approved by manager. Waiting for finance approval.');
+      }
+      
       loadDashboardData(); // Refresh data
     } catch (error) {
       console.error('Failed to approve expense:', error);
-      alert('Failed to approve expense');
+      const errorMessage = error.response?.data?.message || 'Failed to approve expense';
+      alert(`❌ ${errorMessage}`);
     }
   };
 
   const handleRejectExpense = async (expenseId) => {
     const comment = prompt('Please provide a reason for rejection:');
-    if (!comment) return;
+    if (!comment || comment.trim() === '') {
+      if (comment !== null) {
+        alert('Please provide a reason for rejection.');
+      }
+      return;
+    }
 
     try {
       await expenseService.processExpense(expenseId, 'rejected', comment);
+      alert('✅ Expense rejected successfully.');
       loadDashboardData(); // Refresh data
     } catch (error) {
       console.error('Failed to reject expense:', error);
-      alert('Failed to reject expense');
+      const errorMessage = error.response?.data?.message || 'Failed to reject expense';
+      alert(`❌ ${errorMessage}`);
     }
   };
 
@@ -175,7 +191,7 @@ const ManagerDashboard = ({ user }) => {
                       </div>
                       <div className="text-right ml-4">
                         <p className="text-lg font-semibold text-gray-900">
-                          {expenseService.formatCurrency(expense.convertedAmount)}
+                          {expenseService.formatCurrency(expense.amount, expense.currency?.code)}
                         </p>
                         <div className="flex space-x-2 mt-2">
                           <button
@@ -231,7 +247,7 @@ const ManagerDashboard = ({ user }) => {
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-medium text-gray-900">
-                        {expenseService.formatCurrency(expense.convertedAmount)}
+                        {expenseService.formatCurrency(expense.amount, expense.currency?.code)}
                       </p>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
                         {expense.status}

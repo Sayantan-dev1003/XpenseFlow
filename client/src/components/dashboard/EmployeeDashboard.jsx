@@ -23,7 +23,7 @@ const EmployeeDashboard = ({ user }) => {
       setError(null);
       
       const [myExpenses, companyData] = await Promise.all([
-        expenseService.getUserExpenses({ limit: 10 }),
+        expenseService.getUserExpenses({ limit: 50 }), // Get more expenses for better stats
         companyService.getCompany()
       ]);
 
@@ -46,6 +46,38 @@ const EmployeeDashboard = ({ user }) => {
       setLoading(false);
     }
   };
+
+  // Calculate stats from recent expenses
+  const calculateStats = () => {
+    if (!recentExpenses || recentExpenses.length === 0) {
+      return { pending: 0, approved: 0, rejected: 0, processing: 0, total: 0 };
+    }
+
+    const stats = recentExpenses.reduce((acc, expense) => {
+      acc.total += 1;
+      switch (expense.status) {
+        case 'pending':
+          acc.pending += 1;
+          break;
+        case 'approved':
+          acc.approved += 1;
+          break;
+        case 'rejected':
+          acc.rejected += 1;
+          break;
+        case 'processing':
+          acc.processing += 1;
+          break;
+        default:
+          break;
+      }
+      return acc;
+    }, { pending: 0, approved: 0, rejected: 0, processing: 0, total: 0 });
+
+    return stats;
+  };
+
+  const stats = calculateStats();
 
 
   if (loading) {
@@ -128,7 +160,7 @@ const EmployeeDashboard = ({ user }) => {
           <div className="p-6">
             {recentExpenses.length > 0 ? (
               <div className="space-y-4">
-                {recentExpenses.map((expense) => (
+                {recentExpenses.slice(0, 10).map((expense) => (
                   <div key={expense._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -190,6 +222,50 @@ const EmployeeDashboard = ({ user }) => {
 
         {/* Quick Stats & Actions */}
         <div className="space-y-6">
+          {/* Status Breakdown */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Status Breakdown</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <span className="text-sm text-gray-600">Approved</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{stats.approved}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                    <span className="text-sm text-gray-600">Pending</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{stats.pending}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                    <span className="text-sm text-gray-600">Processing</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{stats.processing}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                    <span className="text-sm text-gray-600">Rejected</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{stats.rejected}</span>
+                </div>
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-900">Total Expenses</span>
+                    <span className="text-sm font-bold text-gray-900">{stats.total}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Quick Actions */}
           <div className="bg-white rounded-lg shadow">
