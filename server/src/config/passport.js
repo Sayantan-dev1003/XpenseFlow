@@ -82,13 +82,14 @@ passport.use(new GoogleStrategy(
   }
 ));
 
-// GitHub Strategy
-passport.use(new GitHubStrategy(
-  {
-    clientID: process.env.GITHUB_CLIENT_ID,
-    clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    callbackURL: process.env.GITHUB_CALLBACK_URL || '/api/auth/github/callback'
-  },
+// GitHub Strategy (Optional - only if credentials are provided)
+if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+  passport.use(new GitHubStrategy(
+    {
+      clientID: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      callbackURL: process.env.GITHUB_CALLBACK_URL || '/api/auth/github/callback'
+    },
   async (accessToken, refreshToken, profile, done) => {
     try {
       // Check if user already exists
@@ -128,7 +129,8 @@ passport.use(new GitHubStrategy(
       return done(error);
     }
   }
-));
+  ));
+}
 
 // Serialize user for session
 passport.serializeUser((user, done) => {
