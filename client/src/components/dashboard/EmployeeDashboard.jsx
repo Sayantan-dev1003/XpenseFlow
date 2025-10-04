@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiDollarSign, FiUpload, FiLogOut } from 'react-icons/fi';
+import { FiPlus, FiDollarSign, FiUpload, FiLogOut, FiClock } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import expenseService from '../../api/expenseService';
