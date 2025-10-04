@@ -242,7 +242,7 @@ const ExpenseSubmissionForm = () => {
   };
 
   const handleCancel = () => {
-    navigate('/dashboard');
+    navigate('/employee-dashboard');
   };
 
   return (
