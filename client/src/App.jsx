@@ -19,6 +19,9 @@ import ChangePasswordPage from './pages/ChangePasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 
+// Expense Components
+import ExpenseSubmissionForm from './components/expense/ExpenseSubmissionForm';
+
 // Dashboard Components
 import RoleBasedDashboard from './components/dashboard/RoleBasedDashboard';
 
@@ -208,6 +211,16 @@ function App() {
                 element={
                   <ProtectedRoute requireAuth={true}>
                     <ChangePasswordPage />
+                  </ProtectedRoute>
+                } 
+              />
+
+              {/* Expense Routes */}
+              <Route 
+                path="/expenses/submit" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <ExpenseSubmissionForm />
                   </ProtectedRoute>
                 } 
               />

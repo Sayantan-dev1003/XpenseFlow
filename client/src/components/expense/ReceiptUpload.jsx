@@ -96,7 +96,7 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,application/pdf"
           onChange={handleFileSelect}
           disabled={disabled || isProcessing}
           className="hidden"
@@ -116,7 +116,7 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
               </button>
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              PNG, JPG, WebP up to 10MB
+              PNG, JPG, WebP, PDF up to 10MB
             </p>
           </div>
         ) : (

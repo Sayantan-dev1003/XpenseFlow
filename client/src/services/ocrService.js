@@ -153,18 +153,18 @@ class OCRService {
   }
 
   /**
-   * Validate image file
+   * Validate image/PDF file
    */
   validateImageFile(file) {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
     const maxSize = 10 * 1024 * 1024; // 10MB
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error('Please upload a valid image file (JPEG, PNG, or WebP)');
+      throw new Error('Please upload a valid image file (JPEG, PNG, WebP) or PDF');
     }
 
     if (file.size > maxSize) {
-      throw new Error('Image file size should be less than 10MB');
+      throw new Error('File size should be less than 10MB');
     }
 
     return true;
@@ -184,7 +184,7 @@ class OCRService {
    * Get supported file types
    */
   getSupportedTypes() {
-    return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
   }
 
   /**
