@@ -76,6 +76,21 @@ const expenseSchema = new mongoose.Schema({
     enum: ['pending', 'approved', 'rejected', 'processing'],
     default: 'pending'
   },
+  // Track approvals from different roles
+  approvals: {
+    manager: {
+      approved: { type: Boolean, default: false },
+      approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      timestamp: Date,
+      comment: String
+    },
+    finance: {
+      approved: { type: Boolean, default: false },
+      approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      timestamp: Date,
+      comment: String
+    }
+  },
   approvalHistory: [{
     approver: {
       type: mongoose.Schema.Types.ObjectId,
@@ -171,23 +186,65 @@ expenseSchema.pre('save', function(next) {
   next();
 });
 
-// Instance method to add approval
-expenseSchema.methods.addApproval = function(approverId, action, comment = '', level = 0) {
+// Instance method to add approval with dual approval logic
+expenseSchema.methods.addApproval = function(approverId, approverRole, action, comment = '') {
+  // Add to approval history
   this.approvalHistory.push({
     approver: approverId,
     action: action,
     comment: comment,
-    level: level,
+    level: 0,
     timestamp: new Date()
   });
   
-  if (action === 'approved') {
-    this.currentApprovalLevel = level + 1;
-  } else if (action === 'rejected') {
+  if (action === 'rejected') {
+    // Any rejection immediately rejects the expense
     this.status = 'rejected';
+  } else if (action === 'approved') {
+    // Update role-specific approval
+    if (approverRole === 'manager') {
+      this.approvals.manager.approved = true;
+      this.approvals.manager.approver = approverId;
+      this.approvals.manager.timestamp = new Date();
+      this.approvals.manager.comment = comment;
+    } else if (approverRole === 'finance') {
+      this.approvals.finance.approved = true;
+      this.approvals.finance.approver = approverId;
+      this.approvals.finance.timestamp = new Date();
+      this.approvals.finance.comment = comment;
+    }
+    
+    // Check if both manager and finance have approved
+    if (this.approvals.manager.approved && this.approvals.finance.approved) {
+      this.status = 'approved';
+    } else {
+      this.status = 'processing'; // Partially approved
+    }
   }
   
   return this.save();
+};
+
+// Instance method to check if user has already approved
+expenseSchema.methods.hasUserApproved = function(userId, userRole) {
+  if (userRole === 'manager' && this.approvals.manager.approved) {
+    return this.approvals.manager.approver.toString() === userId.toString();
+  }
+  if (userRole === 'finance' && this.approvals.finance.approved) {
+    return this.approvals.finance.approver.toString() === userId.toString();
+  }
+  return false;
+};
+
+// Instance method to get approval status
+expenseSchema.methods.getApprovalStatus = function() {
+  return {
+    managerApproved: this.approvals.manager.approved,
+    financeApproved: this.approvals.finance.approved,
+    fullyApproved: this.approvals.manager.approved && this.approvals.finance.approved,
+    partiallyApproved: (this.approvals.manager.approved || this.approvals.finance.approved) && 
+                      !(this.approvals.manager.approved && this.approvals.finance.approved)
+  };
 };
 
 // Instance method to check if user can approve

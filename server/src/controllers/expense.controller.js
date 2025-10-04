@@ -3,6 +3,7 @@ const Company = require('../models/Company.model');
 const User = require('../models/User.model');
 const ApprovalWorkflow = require('../models/ApprovalWorkflow.model');
 const currencyService = require('../services/currency.service');
+const notificationService = require('../services/notification.service');
 const winston = require('winston');
 const multer = require('multer');
 const path = require('path');
@@ -143,6 +144,16 @@ class ExpenseController {
         .populate('workflowId', 'name type');
 
       winston.info(`Expense submitted: ${expense.title} by user ${userId}`);
+
+      // Send notifications to managers and finance
+      try {
+        const submitter = await User.findById(userId);
+        await notificationService.notifyExpenseSubmission(populatedExpense, submitter);
+        winston.info(`Notifications sent for expense ${expense._id}`);
+      } catch (notificationError) {
+        winston.error('Failed to send notifications:', notificationError);
+        // Don't fail the expense submission if notifications fail
+      }
 
       res.status(201).json({
         success: true,
@@ -301,51 +312,65 @@ class ExpenseController {
         });
       }
 
-      // Check if user has permission to approve
-      const canApprove = req.user.isAdmin() || 
-        (req.user.isManager() && expense.submittedBy.manager?.toString() === approverId);
-
-      if (!canApprove) {
+      // Check if user has permission to approve (only managers and finance)
+      const approverRole = req.user.role;
+      if (!['manager', 'finance'].includes(approverRole)) {
         return res.status(403).json({
           success: false,
-          message: 'You do not have permission to approve this expense'
+          message: 'Only managers and finance personnel can approve expenses'
         });
       }
 
-      // Add approval to history
-      await expense.addApproval(approverId, action, comment, expense.currentApprovalLevel);
-
-      // If approved, check if workflow is complete
-      if (action === 'approved' && expense.workflowId) {
-        const workflow = expense.workflowId;
-        
-        if (workflow.type === 'percentage') {
-          const percentageResult = workflow.checkPercentageApproval(expense);
-          if (percentageResult.approved) {
-            expense.status = 'approved';
-          }
-        } else if (workflow.type === 'specific_approver') {
-          if (workflow.shouldAutoApprove(expense, req.user)) {
-            expense.status = 'approved';
-          }
-        }
+      // Check if user has already approved
+      if (expense.hasUserApproved(approverId, approverRole)) {
+        return res.status(400).json({
+          success: false,
+          message: 'You have already approved this expense'
+        });
       }
 
-      await expense.save();
+      // Check if expense is already finalized
+      if (expense.status === 'approved' || expense.status === 'rejected') {
+        return res.status(400).json({
+          success: false,
+          message: 'This expense has already been finalized'
+        });
+      }
+
+      // Add approval using new dual approval logic
+      await expense.addApproval(approverId, approverRole, action, comment);
 
       const updatedExpense = await Expense.findById(expenseId)
         .populate('submittedBy', 'firstName lastName email')
         .populate('company', 'name baseCurrency')
         .populate('approvalHistory.approver', 'firstName lastName email')
+        .populate('approvals.manager.approver', 'firstName lastName email')
+        .populate('approvals.finance.approver', 'firstName lastName email')
         .populate('workflowId', 'name type');
 
-      winston.info(`Expense ${action}: ${expense.title} by user ${approverId}`);
+      // Send notifications
+      try {
+        const approver = await User.findById(approverId);
+        await notificationService.notifyExpenseDecision(
+          updatedExpense, 
+          updatedExpense.submittedBy, 
+          approver, 
+          action, 
+          comment
+        );
+        winston.info(`Notifications sent for expense ${action}: ${expense._id}`);
+      } catch (notificationError) {
+        winston.error('Failed to send decision notifications:', notificationError);
+      }
+
+      winston.info(`Expense ${action}: ${expense.title} by ${approverRole} ${approverId}`);
 
       res.json({
         success: true,
         message: `Expense ${action} successfully`,
         data: {
-          expense: updatedExpense
+          expense: updatedExpense,
+          approvalStatus: updatedExpense.getApprovalStatus()
         }
       });
     } catch (error) {

@@ -260,7 +260,7 @@ const ExpenseSubmissionForm = () => {
       await expenseService.submitExpense(expenseData, selectedFile);
       
       toast.success('Expense submitted successfully!');
-      navigate('/dashboard');
+      navigate('/employee-dashboard');
     } catch (error) {
       console.error('Failed to submit expense:', error);
       console.error('Error response:', error.response?.data);
