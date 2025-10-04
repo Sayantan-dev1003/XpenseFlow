@@ -108,7 +108,7 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/*"
           onChange={handleFileSelect}
           disabled={disabled || isProcessing}
           className="hidden"
@@ -128,7 +128,10 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
               </button>
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              PNG, JPG, WebP, PDF up to 10MB
+              PNG, JPG, WebP up to 10MB
+            </p>
+            <p className="mt-1 text-xs text-gray-400">
+              For PDF files, please convert to image first
             </p>
           </div>
         ) : (
@@ -217,12 +220,12 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
                   </span>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
                   <div>
                     <span className="font-medium text-gray-700">Amount:</span>
                     <p className="text-gray-900">
                       {extractedData.extractedAmount 
-                        ? `$${extractedData.extractedAmount.toFixed(2)}`
+                        ? `${extractedData.extractedAmount.toFixed(2)}`
                         : 'Not found'
                       }
                     </p>
@@ -242,6 +245,22 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
                       {extractedData.extractedVendor || 'Not found'}
                     </p>
                   </div>
+                  {extractedData.extractedCategory && (
+                    <div>
+                      <span className="font-medium text-gray-700">Category:</span>
+                      <p className="text-gray-900">
+                        {extractedData.extractedCategory}
+                      </p>
+                    </div>
+                  )}
+                  {extractedData.extractedDescription && (
+                    <div className="md:col-span-2 lg:col-span-3">
+                      <span className="font-medium text-gray-700">Description:</span>
+                      <p className="text-gray-900 text-xs">
+                        {extractedData.extractedDescription}
+                      </p>
+                    </div>
+                  )}
                 </div>
                 
                 <p className="text-xs text-green-600 mt-2">

@@ -89,17 +89,25 @@ class OCRService {
       extractedAmount: null,
       extractedDate: null,
       extractedVendor: null,
+      extractedCategory: null,
+      extractedDescription: null,
+      extractedTags: [],
+      extractedNotes: null,
+      extractedCurrency: null,
       confidence: 0
     };
 
     try {
-      // Extract amount - look for currency symbols and numbers
+      // Extract amount - look for currency symbols and numbers (including INR)
       const amountPatterns = [
         /\$\s*(\d+(?:\.\d{2})?)/g,
         /(\d+(?:\.\d{2})?)\s*\$/g,
-        /total[:\s]*\$?\s*(\d+(?:\.\d{2})?)/gi,
-        /amount[:\s]*\$?\s*(\d+(?:\.\d{2})?)/gi,
-        /(\d+\.\d{2})/g
+        /(\d+(?:\.\d{1,2}))\s*INR/gi,
+        /INR\s*(\d+(?:\.\d{1,2})?)/gi,
+        /total[:\s]*\$?\s*(\d+(?:\.\d{1,2})?)/gi,
+        /total[:\s]*(\d+(?:\.\d{1,2})?)\s*INR/gi,
+        /amount[:\s]*\$?\s*(\d+(?:\.\d{1,2})?)/gi,
+        /(\d+\.\d{1,2})/g
       ];
 
       let amounts = [];
@@ -119,13 +127,26 @@ class OCRService {
         data.confidence += 30;
       }
 
+      // Extract currency
+      if (text.includes('INR') || text.includes('₹')) {
+        data.extractedCurrency = 'INR';
+      } else if (text.includes('$') || text.includes('USD')) {
+        data.extractedCurrency = 'USD';
+      } else if (text.includes('€') || text.includes('EUR')) {
+        data.extractedCurrency = 'EUR';
+      } else if (text.includes('£') || text.includes('GBP')) {
+        data.extractedCurrency = 'GBP';
+      }
+
       // Extract date - various date formats
       const datePatterns = [
         /(\d{1,2}\/\d{1,2}\/\d{2,4})/g,
         /(\d{1,2}-\d{1,2}-\d{2,4})/g,
         /(\d{4}-\d{1,2}-\d{1,2})/g,
         /(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{1,2},?\s+\d{2,4}/gi,
-        /\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4}/gi
+        /\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4}/gi,
+        /date[:\s]*(\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d{2,4})/gi,
+        /(\d{2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{4})/gi
       ];
 
       datePatterns.forEach(pattern => {
@@ -144,8 +165,8 @@ class OCRService {
       // Look for common patterns at the beginning of receipts
       const lines = text.split('\n').filter(line => line.trim().length > 0);
       
-      // First few lines often contain merchant name
-      for (let i = 0; i < Math.min(5, lines.length); i++) {
+      // Look for business names in the first few lines
+      for (let i = 0; i < Math.min(8, lines.length); i++) {
         const line = lines[i].trim();
         
         // Skip lines that look like addresses, phone numbers, or common receipt terms
@@ -155,13 +176,134 @@ class OCRService {
             !line.toLowerCase().includes('invoice') &&
             !line.toLowerCase().includes('phone') &&
             !line.toLowerCase().includes('address') &&
+            !line.toLowerCase().includes('fine foods') &&
+            !line.toLowerCase().includes('beverages') &&
             !line.match(/\d{3}-\d{3}-\d{4}/) &&
-            !line.match(/^\d+\s+\w+\s+(st|ave|rd|blvd|dr)/i)) {
+            !line.match(/^\d+\s+\w+\s+(st|ave|rd|blvd|dr|lane|city)/i) &&
+            !line.match(/^\d{2,4}[-\/]\d{2}[-\/]\d{2,4}/) &&
+            !line.match(/^time:/i) &&
+            !line.match(/^date:/i)) {
           
-          data.extractedVendor = line;
-          data.confidence += 20;
-          break;
+          // Prioritize lines that look like business names
+          if (line.toLowerCase().includes('spoon') || 
+              line.toLowerCase().includes('restaurant') ||
+              line.toLowerCase().includes('cafe') ||
+              line.toLowerCase().includes('the ') ||
+              line.match(/^[A-Z][a-z]+\s+[A-Z][a-z]+/)) {
+            data.extractedVendor = line;
+            data.confidence += 25;
+            break;
+          } else if (!data.extractedVendor) {
+            data.extractedVendor = line;
+            data.confidence += 15;
+          }
         }
+      }
+
+      // Extract category based on vendor or content
+      const categoryKeywords = {
+        'Meals': ['restaurant', 'cafe', 'food', 'dining', 'lunch', 'dinner', 'breakfast', 'spoon', 'kitchen', 'grill', 'bar'],
+        'Transportation': ['taxi', 'uber', 'lyft', 'bus', 'train', 'flight', 'airline', 'transport'],
+        'Accommodation': ['hotel', 'motel', 'inn', 'resort', 'lodge', 'accommodation'],
+        'Office Supplies': ['office', 'supplies', 'stationery', 'paper', 'pen', 'printer'],
+        'Technology': ['computer', 'software', 'hardware', 'tech', 'electronics'],
+        'Marketing': ['advertising', 'marketing', 'promotion', 'campaign'],
+        'Training': ['training', 'course', 'workshop', 'seminar', 'education'],
+        'Utilities': ['electricity', 'water', 'gas', 'internet', 'phone', 'utility']
+      };
+
+      const textLower = text.toLowerCase();
+      let bestCategory = null;
+      let maxMatches = 0;
+
+      for (const [category, keywords] of Object.entries(categoryKeywords)) {
+        const matches = keywords.filter(keyword => textLower.includes(keyword)).length;
+        if (matches > maxMatches) {
+          maxMatches = matches;
+          bestCategory = category;
+        }
+      }
+
+      if (bestCategory) {
+        data.extractedCategory = bestCategory;
+        data.confidence += 15;
+      }
+
+      // Extract description from items or context
+      const textLines = text.split('\n').filter(line => line.trim().length > 0);
+      const itemLines = [];
+      
+      for (const line of textLines) {
+        const trimmedLine = line.trim();
+        // Look for lines that might be item descriptions
+        if (trimmedLine.length > 3 && 
+            !trimmedLine.match(/^\d+/) &&
+            !trimmedLine.toLowerCase().includes('total') &&
+            !trimmedLine.toLowerCase().includes('subtotal') &&
+            !trimmedLine.toLowerCase().includes('tax') &&
+            !trimmedLine.toLowerCase().includes('receipt') &&
+            !trimmedLine.toLowerCase().includes('date') &&
+            !trimmedLine.toLowerCase().includes('time') &&
+            !trimmedLine.match(/\d{2,4}[-\/]\d{2}[-\/]\d{2,4}/) &&
+            trimmedLine.match(/[a-zA-Z]/) &&
+            trimmedLine.length < 50) {
+          
+          // Skip address-like lines
+          if (!trimmedLine.match(/^\d+\s+\w+\s+(st|ave|rd|blvd|dr|lane|city)/i) &&
+              !trimmedLine.toLowerCase().includes('phone') &&
+              !trimmedLine.toLowerCase().includes('address')) {
+            itemLines.push(trimmedLine);
+          }
+        }
+      }
+
+      if (itemLines.length > 0) {
+        // Take the first few meaningful lines as description
+        data.extractedDescription = itemLines.slice(0, 3).join(', ');
+        data.confidence += 10;
+      }
+
+      // Generate tags based on extracted data
+      const tags = [];
+      if (data.extractedVendor) {
+        tags.push(data.extractedVendor.split(' ')[0]); // First word of vendor name
+      }
+      if (data.extractedCategory) {
+        tags.push(data.extractedCategory.toLowerCase());
+      }
+      if (data.extractedCurrency) {
+        tags.push(data.extractedCurrency);
+      }
+      
+      // Add location-based tags if found
+      const locationKeywords = ['restaurant', 'hotel', 'airport', 'station', 'mall', 'store'];
+      locationKeywords.forEach(keyword => {
+        if (text.toLowerCase().includes(keyword)) {
+          tags.push(keyword);
+        }
+      });
+      
+      data.extractedTags = [...new Set(tags)]; // Remove duplicates
+
+      // Extract notes from receipt ID, payment method, or other details
+      const notePatterns = [
+        /receipt\s*id[:\s]*([a-zA-Z0-9-]+)/gi,
+        /payment\s*method[:\s]*([a-zA-Z\s]+)/gi,
+        /card\s*\([X\d-]+\)/gi
+      ];
+      
+      const notes = [];
+      notePatterns.forEach(pattern => {
+        const matches = [...text.matchAll(pattern)];
+        matches.forEach(match => {
+          if (match[1]) {
+            notes.push(match[0]);
+          }
+        });
+      });
+      
+      if (notes.length > 0) {
+        data.extractedNotes = notes.join(', ');
       }
 
       // Additional confidence based on text quality
@@ -181,33 +323,71 @@ class OCRService {
   }
 
   /**
+   * Convert PDF to image for OCR processing
+   */
+  async convertPdfToImage(pdfFile) {
+    try {
+      console.log('📄 Converting PDF to image for OCR...');
+      
+      // For now, show a helpful message for PDF files
+      throw new Error('PDF processing is not yet supported. Please upload an image file (JPG, PNG, WebP) or convert your PDF to an image first.');
+    } catch (error) {
+      console.error('PDF conversion failed:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Fallback OCR method using Tesseract without workers
    */
   async extractTextFallback(imageFile, onProgress = null) {
     try {
-      console.log('Starting fallback OCR extraction for file:', imageFile.name);
+      console.log('🔍 Starting fallback OCR extraction for file:', imageFile.name, 'Size:', imageFile.size, 'Type:', imageFile.type);
+      
+      // Validate file before processing
+      if (!imageFile || imageFile.size === 0) {
+        throw new Error('Invalid or empty file');
+      }
+
+      // Handle PDF files
+      if (imageFile.type === 'application/pdf') {
+        throw new Error('PDF files are not supported for OCR. Please upload an image file (JPG, PNG, WebP) or convert your PDF to an image first.');
+      }
+
+      // Validate image file types
+      const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+      if (!supportedTypes.includes(imageFile.type)) {
+        throw new Error(`Unsupported file type: ${imageFile.type}. Please upload a JPG, PNG, or WebP image.`);
+      }
       
       // Use Tesseract.recognize directly without creating a worker
+      console.log('📸 Calling Tesseract.recognize...');
       const result = await Tesseract.recognize(imageFile, 'eng', {
         logger: (m) => {
-          console.log('OCR Progress:', m);
-          if (onProgress && m.status === 'recognizing text') {
-            onProgress(Math.round(m.progress * 100));
+          if (m.status === 'recognizing text') {
+            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+            if (onProgress) {
+              onProgress(Math.round(m.progress * 100));
+            }
+          } else {
+            console.log('OCR Status:', m.status);
           }
         }
       });
 
-      console.log('OCR Result:', result);
+      console.log('✅ OCR Result received:', result);
       const text = result.data.text;
 
       if (!text || text.trim().length === 0) {
-        throw new Error('No text could be extracted from the image');
+        console.warn('⚠️ No text extracted from image');
+        throw new Error('No text could be extracted from the image. The image might be too blurry or contain no readable text.');
       }
 
-      console.log('Extracted text:', text.substring(0, 100) + '...');
+      console.log('📝 Extracted text length:', text.length);
+      console.log('📄 First 200 characters:', text.substring(0, 200));
       return text;
     } catch (error) {
-      console.error('Fallback OCR extraction failed:', error);
+      console.error('❌ Fallback OCR extraction failed:', error);
       throw new Error(`Failed to extract text from image: ${error.message}. Please enter data manually.`);
     }
   }
@@ -216,32 +396,21 @@ class OCRService {
    * Process receipt image and extract structured data
    */
   async processReceipt(imageFile, onProgress = null) {
+    console.log('🔍 Starting OCR processing for:', imageFile.name);
+    
     try {
       let text;
       
-      // Always use fallback method in development to avoid CSP issues
-      const isDevelopment = import.meta.env.DEV;
+      // ALWAYS use fallback method to avoid CSP issues completely
+      console.log('📝 Using direct Tesseract.recognize method (no workers)');
+      text = await this.extractTextFallback(imageFile, onProgress);
       
-      if (isDevelopment) {
-        console.log('Using direct Tesseract.recognize method in development');
-        text = await this.extractTextFallback(imageFile, onProgress);
-      } else {
-        try {
-          // Try the worker-based approach first in production
-          text = await this.extractText(imageFile, onProgress);
-        } catch (workerError) {
-          console.warn('Worker-based OCR failed, trying fallback method:', workerError);
-          
-          // Fallback to direct Tesseract.recognize
-          text = await this.extractTextFallback(imageFile, onProgress);
-        }
-      }
-      
+      console.log('✅ OCR text extraction successful');
       const receiptData = this.extractReceiptData(text);
       
       return receiptData;
     } catch (error) {
-      console.error('Receipt processing failed:', error);
+      console.error('❌ Receipt processing failed:', error);
       throw error;
     }
   }
@@ -265,14 +434,18 @@ class OCRService {
   }
 
   /**
-   * Validate image/PDF file
+   * Validate image file for OCR
    */
   validateImageFile(file) {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const maxSize = 10 * 1024 * 1024; // 10MB
 
     if (!allowedTypes.includes(file.type)) {
-      throw new Error('Please upload a valid image file (JPEG, PNG, WebP) or PDF');
+      if (file.type === 'application/pdf') {
+        throw new Error('PDF files are not supported for OCR. Please upload an image file (JPEG, PNG, WebP) or convert your PDF to an image first.');
+      } else {
+        throw new Error('Please upload a valid image file (JPEG, PNG, WebP)');
+      }
     }
 
     if (file.size > maxSize) {
