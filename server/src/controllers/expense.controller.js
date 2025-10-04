@@ -42,6 +42,10 @@ class ExpenseController {
    */
   async submitExpense(req, res) {
     try {
+      console.log('📥 Received request body:', req.body);
+      console.log('📥 Request file:', req.file);
+      
+      // Extract data from request body (already parsed by middleware)
       const {
         title,
         description,
@@ -52,6 +56,15 @@ class ExpenseController {
         tags,
         notes
       } = req.body;
+
+      console.log('📋 Final data types:', {
+        title: typeof title,
+        amount: typeof amount,
+        currency: typeof currency,
+        category: typeof category,
+        date: typeof date,
+        tags: typeof tags
+      });
 
       const userId = req.user.id;
       const companyId = req.user.company;
