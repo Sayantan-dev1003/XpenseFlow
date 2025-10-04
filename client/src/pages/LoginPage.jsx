@@ -15,6 +15,7 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
 
   const { login, sendLoginOTP, verifyLoginOTP, clearError } = useAuth();
   const navigate = useNavigate();
@@ -44,8 +45,17 @@ const LoginPage = () => {
     setIsLoading(true);
     setError('');
     
+    // Validate role selection
+    if (!selectedRole) {
+      setError('Please select your role');
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      const result = await login(credentials);  
+      // Include role in credentials
+      const credentialsWithRole = { ...credentials, role: selectedRole };
+      const result = await login(credentialsWithRole);  
       
       if (result.success) {
         setLoginData(result.data);
@@ -58,7 +68,7 @@ const LoginPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [login]);
+  }, [login, selectedRole]);
 
   const handleMethodSelect = async (method) => {
     setIsLoading(true);
@@ -108,9 +118,32 @@ const LoginPage = () => {
     setIsLoading(false);
 
     if (result.success) {
-      navigate(from, { replace: true });
+      // Redirect based on user role
+      const redirectPath = getRoleBasedRedirectPath(result.user);
+      navigate(redirectPath, { replace: true });
     } else {
       setError(result.error);
+    }
+  };
+
+  // Helper function to determine redirect path based on user role
+  const getRoleBasedRedirectPath = (user) => {
+    if (!user || !user.role) {
+      return from;
+    }
+    console.log(user.role)
+
+    switch (user.role) {
+      case 'admin':
+        return '/admin-dashboard';
+      case 'manager':
+        return '/manager-dashboard';
+      case 'employee':
+        return '/employee-dashboard';
+      case 'finance':
+        return '/finance-dashboard';
+      default:
+        return from;
     }
   };
 
@@ -239,6 +272,8 @@ const LoginPage = () => {
                       onSubmit={handleStep1Submit}
                       isLoading={isLoading}
                       error={error}
+                      selectedRole={selectedRole}
+                      onRoleChange={setSelectedRole}
                     />
                   )}
                   

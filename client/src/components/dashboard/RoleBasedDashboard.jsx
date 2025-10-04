@@ -3,6 +3,7 @@ import { useAuth } from '../../hooks/useAuth';
 import AdminDashboard from './AdminDashboard';
 import ManagerDashboard from './ManagerDashboard';
 import EmployeeDashboard from './EmployeeDashboard';
+import FinanceDashboard from './FinanceDashboard';
 import { FiLoader } from 'react-icons/fi';
 
 const RoleBasedDashboard = () => {
@@ -59,6 +60,8 @@ const RoleBasedDashboard = () => {
         return <ManagerDashboard user={user} />;
       case 'employee':
         return <EmployeeDashboard user={user} />;
+      case 'finance':
+        return <FinanceDashboard user={user} />;
       default:
         return (
           <div className="min-h-screen flex items-center justify-center">

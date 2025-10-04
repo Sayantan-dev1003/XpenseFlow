@@ -18,6 +18,9 @@ import ChangePasswordPage from './pages/ChangePasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 
+// Dashboard Components
+import RoleBasedDashboard from './components/dashboard/RoleBasedDashboard';
+
 // OAuth Success/Error Pages
 const AuthSuccessPage = () => {
   useEffect(() => {
@@ -28,7 +31,35 @@ const AuthSuccessPage = () => {
     if (token && refreshToken) {
       localStorage.setItem('accessToken', token);
       localStorage.setItem('refreshToken', refreshToken);
-      window.location.href = '/dashboard';
+      
+      // Get user info from token to determine redirect path
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const userRole = payload.role;
+        
+        let redirectPath = '/dashboard';
+        switch (userRole) {
+          case 'admin':
+            redirectPath = '/admin-dashboard';
+            break;
+          case 'manager':
+            redirectPath = '/manager-dashboard';
+            break;
+          case 'employee':
+            redirectPath = '/employee-dashboard';
+            break;
+          case 'finance':
+            redirectPath = '/finance-dashboard';
+            break;
+          default:
+            redirectPath = '/dashboard';
+        }
+        
+        window.location.href = redirectPath;
+      } catch (error) {
+        console.error('Error parsing token:', error);
+        window.location.href = '/dashboard';
+      }
     } else {
       window.location.href = '/login';
     }
@@ -127,6 +158,41 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+              
+              {/* Role-based Dashboard Routes */}
+              <Route 
+                path="/admin-dashboard" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <RoleBasedDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/manager-dashboard" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <RoleBasedDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/employee-dashboard" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <RoleBasedDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/finance-dashboard" 
+                element={
+                  <ProtectedRoute requireAuth={true}>
+                    <RoleBasedDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
               <Route 
                 path="/change-password" 
                 element={

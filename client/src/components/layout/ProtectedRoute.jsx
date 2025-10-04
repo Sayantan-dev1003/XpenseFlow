@@ -4,9 +4,8 @@ import { useAuth } from '../../hooks/useAuth.js';
 import Spinner from '../common/Spinner';
 
 const ProtectedRoute = ({ children, requireAuth = true, allowInProgress = false }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const location = useLocation();
-
 
   // Show loading spinner while checking authentication
   if (isLoading) {
@@ -28,10 +27,32 @@ const ProtectedRoute = ({ children, requireAuth = true, allowInProgress = false 
   // If authentication is not required but user is authenticated (e.g., login/register pages)
   // Allow in-progress authentication flows to continue
   if (!requireAuth && isAuthenticated && !allowInProgress) {
-    return <Navigate to="/dashboard" replace />;
+    // Redirect based on user role
+    const redirectPath = getRoleBasedRedirectPath(user);
+    return <Navigate to={redirectPath} replace />;
   }
 
   return children;
+};
+
+// Helper function to determine redirect path based on user role
+const getRoleBasedRedirectPath = (user) => {
+  if (!user || !user.role) {
+    return '/dashboard';
+  }
+
+  switch (user.role) {
+    case 'admin':
+      return '/admin-dashboard';
+    case 'manager':
+      return '/manager-dashboard';
+    case 'employee':
+      return '/employee-dashboard';
+    case 'finance':
+      return '/finance-dashboard';
+    default:
+      return '/dashboard';
+  }
 };
 
 export default ProtectedRoute;

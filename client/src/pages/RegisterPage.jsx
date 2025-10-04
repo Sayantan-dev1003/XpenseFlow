@@ -132,11 +132,29 @@ const RegisterPage = () => {
     setIsLoading(false);
 
     if (result.success) {
-      // Navigate directly to dashboard
-      navigate('/dashboard');
+      // Redirect based on user role
+      const redirectPath = getRoleBasedRedirectPath(result.data.user);
+      navigate(redirectPath);
     }
   };
 
+  // Helper function to determine redirect path based on user role
+  const getRoleBasedRedirectPath = (user) => {
+    if (!user || !user.role) {
+      return '/dashboard';
+    }
+
+    switch (user.role) {
+      case 'admin':
+        return '/admin-dashboard';
+      case 'manager':
+        return '/manager-dashboard';
+      case 'employee':
+        return '/employee-dashboard';
+      default:
+        return '/dashboard';
+    }
+  };
 
   return (
     <div className="min-h-screen flex">
