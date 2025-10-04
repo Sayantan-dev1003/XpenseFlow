@@ -1,5 +1,6 @@
 const User = require('../models/User.model');
 const Token = require('../models/Token.model');
+const Company = require('../models/Company.model');
 const config = require('../config');
 const { 
   generateTokens, 
@@ -9,6 +10,7 @@ const {
 } = require('../utils/generateTokens');
 const otpService = require('../services/otp.service');
 const emailService = require('../services/email.service');
+const currencyService = require('../services/currency.service');
 const { securityLogger } = require('../utils/logger');
 const { asyncHandler, AppError } = require('../middleware/error.middleware');
 const { 
@@ -24,12 +26,37 @@ const {
 
 // Register user
 const register = asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, password, phoneNumber } = req.body;
+  const { firstName, lastName, email, password, phoneNumber, companyName, country } = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email: email.toLowerCase() });
   if (existingUser) {
     throw new AppError('User already exists with this email', 400);
+  }
+
+  // Get currency for the country (if provided)
+  let currency = null;
+  if (country) {
+    currency = await currencyService.getCurrencyByCountry(country);
+    if (!currency) {
+      // Fallback to USD if currency detection fails
+      currency = { code: 'USD', name: 'US Dollar', symbol: '$' };
+    }
+  } else {
+    // Default to USD if no country provided
+    currency = { code: 'USD', name: 'US Dollar', symbol: '$' };
+  }
+
+  // Create company first (if this is the first signup)
+  let company = null;
+  if (companyName) {
+    company = new Company({
+      name: companyName,
+      country: country || 'United States',
+      baseCurrency: currency,
+      createdBy: null // Will be updated after user creation
+    });
+    await company.save();
   }
 
   // Create user
@@ -39,10 +66,18 @@ const register = asyncHandler(async (req, res) => {
     email: email.toLowerCase(),
     password,
     phoneNumber,
-    authProvider: 'local'
+    authProvider: 'local',
+    company: company ? company._id : null,
+    role: company ? 'admin' : 'employee' // First user becomes admin
   });
 
   await user.save();
+
+  // Update company's createdBy field
+  if (company) {
+    company.createdBy = user._id;
+    await company.save();
+  }
 
   // Generate tokens for immediate login
   const { accessToken, refreshToken } = generateTokens(user._id);
@@ -68,7 +103,13 @@ const register = asyncHandler(async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        profilePicture: user.profilePicture
+        profilePicture: user.profilePicture,
+        role: user.role,
+        company: company ? {
+          id: company._id,
+          name: company.name,
+          baseCurrency: company.baseCurrency
+        } : null
       },
       accessToken,
       refreshToken

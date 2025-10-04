@@ -1,0 +1,276 @@
+import React, { useState, useEffect } from 'react';
+import { FiPlus, FiDollarSign, FiClock, FiCheckCircle, FiXCircle, FiUpload } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import expenseService from '../../api/expenseService';
+
+const EmployeeDashboard = ({ user }) => {
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    total: 0,
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    totalAmount: 0
+  });
+  const [recentExpenses, setRecentExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      const [expenseStats, myExpenses] = await Promise.all([
+        expenseService.getExpenseStats({ period: 'month' }),
+        expenseService.getUserExpenses({ limit: 10 })
+      ]);
+
+      setStats(expenseStats.data.stats.summary);
+      setRecentExpenses(myExpenses.data.expenses);
+    } catch (error) {
+      console.error('Failed to load employee dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const StatCard = ({ title, value, icon: Icon, color, subtitle, onClick }) => (
+    <div 
+      className={`bg-white rounded-lg shadow p-6 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+      onClick={onClick}
+    >
+      <div className="flex items-center">
+        <div className={`flex-shrink-0 p-3 rounded-lg ${color}`}>
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-2xl font-semibold text-gray-900">{value}</p>
+          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow p-6">
+                <div className="h-16 bg-gray-200 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
+        <p className="text-gray-600">Welcome back, {user.firstName}! Track and submit your expenses.</p>
+      </div>
+
+      {/* Quick Action */}
+      <div className="mb-8">
+        <button
+          onClick={() => navigate('/expenses/submit')}
+          className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          <FiPlus className="w-5 h-5 mr-2" />
+          Submit New Expense
+        </button>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Total Expenses"
+          value={stats.total}
+          icon={FiDollarSign}
+          color="bg-blue-500"
+          subtitle="This month"
+        />
+        <StatCard
+          title="Pending"
+          value={stats.pending}
+          icon={FiClock}
+          color="bg-yellow-500"
+          subtitle="Awaiting approval"
+          onClick={() => navigate('/expenses?status=pending')}
+        />
+        <StatCard
+          title="Approved"
+          value={stats.approved}
+          icon={FiCheckCircle}
+          color="bg-green-500"
+          subtitle="Ready for reimbursement"
+          onClick={() => navigate('/expenses?status=approved')}
+        />
+        <StatCard
+          title="Total Amount"
+          value={expenseService.formatCurrency(stats.totalAmount)}
+          icon={FiDollarSign}
+          color="bg-purple-500"
+          subtitle="This month"
+        />
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Recent Expenses */}
+        <div className="lg:col-span-2 bg-white rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">Recent Expenses</h3>
+              <button 
+                onClick={() => navigate('/expenses')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                View All
+              </button>
+            </div>
+          </div>
+          <div className="p-6">
+            {recentExpenses.length > 0 ? (
+              <div className="space-y-4">
+                {recentExpenses.map((expense) => (
+                  <div key={expense._id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900">{expense.title}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{expense.description}</p>
+                        <div className="flex items-center mt-2 space-x-4 text-sm text-gray-500">
+                          <span>{expense.category}</span>
+                          <span>•</span>
+                          <span>{expenseService.formatDate(expense.date)}</span>
+                          {expense.receipt && (
+                            <>
+                              <span>•</span>
+                              <span className="flex items-center">
+                                <FiUpload className="w-3 h-3 mr-1" />
+                                Receipt attached
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right ml-4">
+                        <p className="text-lg font-semibold text-gray-900">
+                          {expenseService.formatCurrency(expense.convertedAmount)}
+                        </p>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
+                          {expense.status}
+                        </span>
+                        {expense.status === 'pending' && (
+                          <div className="mt-1">
+                            <button 
+                              onClick={() => navigate(`/expenses/${expense._id}/edit`)}
+                              className="text-xs text-blue-600 hover:text-blue-800"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <FiDollarSign className="mx-auto h-12 w-12 text-gray-400" />
+                <p className="mt-2 text-gray-500">No expenses yet</p>
+                <p className="text-sm text-gray-400">Submit your first expense to get started</p>
+                <button
+                  onClick={() => navigate('/expenses/submit')}
+                  className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <FiPlus className="w-4 h-4 mr-2" />
+                  Submit Expense
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick Stats & Actions */}
+        <div className="space-y-6">
+          {/* Status Breakdown */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Status Breakdown</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                    <span className="text-sm text-gray-600">Approved</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{stats.approved}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                    <span className="text-sm text-gray-600">Pending</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{stats.pending}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                    <span className="text-sm text-gray-600">Rejected</span>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900">{stats.rejected}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-lg shadow">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-3">
+                <button
+                  onClick={() => navigate('/expenses/submit')}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <FiPlus className="w-4 h-4 mr-2" />
+                  New Expense
+                </button>
+                <button
+                  onClick={() => navigate('/expenses?status=pending')}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <FiClock className="w-4 h-4 mr-2" />
+                  View Pending
+                </button>
+                <button
+                  onClick={() => navigate('/expenses')}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <FiDollarSign className="w-4 h-4 mr-2" />
+                  All Expenses
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EmployeeDashboard;

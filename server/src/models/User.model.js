@@ -73,6 +73,39 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true
   },
+  // Company and Role Management
+  company: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Company',
+    required: true
+  },
+  role: {
+    type: String,
+    enum: ['admin', 'manager', 'employee'],
+    default: 'employee',
+    required: true
+  },
+  manager: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  department: {
+    type: String,
+    trim: true
+  },
+  jobTitle: {
+    type: String,
+    trim: true
+  },
+  employeeId: {
+    type: String,
+    trim: true
+  },
+  hireDate: {
+    type: Date,
+    default: Date.now
+  },
   preferences: {
     emailNotifications: {
       type: Boolean,
@@ -108,6 +141,10 @@ userSchema.virtual('isLocked').get(function() {
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ googleId: 1 }, { sparse: true });
 userSchema.index({ githubId: 1 }, { sparse: true });
+userSchema.index({ company: 1 });
+userSchema.index({ manager: 1 });
+userSchema.index({ role: 1 });
+userSchema.index({ employeeId: 1, company: 1 }, { sparse: true });
 
 // Pre-save middleware to hash password
 userSchema.pre('save', async function(next) {
@@ -157,6 +194,29 @@ userSchema.methods.resetLoginAttempts = function() {
   });
 };
 
+// Instance methods for role checking
+userSchema.methods.isAdmin = function() {
+  return this.role === 'admin';
+};
+
+userSchema.methods.isManager = function() {
+  return this.role === 'manager';
+};
+
+userSchema.methods.isEmployee = function() {
+  return this.role === 'employee';
+};
+
+userSchema.methods.canManage = function(userId) {
+  if (this.isAdmin()) return true;
+  if (this.isManager()) {
+    // Check if the user is under this manager
+    return this._id.toString() === userId.toString() || 
+           (this.directReports && this.directReports.includes(userId));
+  }
+  return false;
+};
+
 // Static method to find user by email or social ID
 userSchema.statics.findByCredentials = async function(email, socialId = null) {
   let user;
@@ -173,6 +233,11 @@ userSchema.statics.findByCredentials = async function(email, socialId = null) {
   }
   
   return user;
+};
+
+// Static method to get team members for a manager
+userSchema.statics.getTeamMembers = async function(managerId) {
+  return await this.find({ manager: managerId }).populate('company', 'name');
 };
 
 module.exports = mongoose.model('User', userSchema);
