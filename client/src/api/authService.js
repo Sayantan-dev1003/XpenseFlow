@@ -57,13 +57,7 @@ export const authService = {
     return response.data;
   },
 
-  // Send OTP for login - Step 2: Send OTP based on method
-  sendLoginOTP: async (userId, method) => {
-    const response = await api.post('/auth/send-login-otp', { userId, method });
-    return response.data;
-  },
-
-  // Verify OTP for login - Step 3: Verify OTP and complete login
+  // Verify OTP for login - Step 2: Verify OTP and complete login
   verifyLoginOTP: async (userId, otp, method) => {
     const response = await api.post('/auth/verify-login-otp', { userId, otp, method });
     return response.data;

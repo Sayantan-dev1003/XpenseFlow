@@ -138,25 +138,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Send login OTP function - Step 2: Send OTP
-  const sendLoginOTP = useCallback(async (userId, method) => {
-    try {
-      const response = await authService.sendLoginOTP(userId, method);
-      
-      if (response.success) {
-        toast.success(response.message);
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to send OTP';
-      toast.error(errorMessage);
-      return { success: false, error: errorMessage };
-    }
-  }, []);
-
-  // Verify login OTP function - Step 3: Verify OTP and complete login
+  // Verify login OTP function - Step 2: Verify OTP and complete login
   const verifyLoginOTP = useCallback(async (userId, otp, method) => {
     try {
       const response = await authService.verifyLoginOTP(userId, otp, method);
@@ -263,7 +245,6 @@ export const AuthProvider = ({ children }) => {
   const value = useMemo(() => ({
     ...state,
     login,
-    sendLoginOTP,
     verifyLoginOTP,
     register,
     logout,
@@ -271,7 +252,7 @@ export const AuthProvider = ({ children }) => {
     githubLogin,
     clearError,
     handleAuthFailure
-  }), [state, login, sendLoginOTP, verifyLoginOTP, register, logout, googleLogin, githubLogin, clearError, handleAuthFailure]);
+  }), [state, login, verifyLoginOTP, register, logout, googleLogin, githubLogin, clearError, handleAuthFailure]);
 
   return (
     <AuthContext.Provider value={value}>

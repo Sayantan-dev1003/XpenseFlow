@@ -11,7 +11,7 @@ const crypto = require('crypto');
 
 // Create new user (Admin only)
 const createUser = asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, role, manager } = req.body;
+  const { firstName, lastName, email, phoneNumber, password, role, manager } = req.body;
   const adminId = req.user._id;
   const companyId = req.user.company;
 
@@ -38,53 +38,39 @@ const createUser = asyncHandler(async (req, res) => {
     }
   }
 
-  // Generate temporary password
-  const tempPassword = '123456'; // Default password as mentioned in requirements
-
   // Create user
   const user = new User({
     firstName,
     lastName,
     email: email.toLowerCase(),
-    password: tempPassword,
+    phoneNumber,
+    password,
     company: companyId,
     role,
     manager: role === 'employee' ? manager : null,
-    authProvider: 'local'
+    authProvider: 'local',
+    hasChangedDefaultPassword: false // Admin sets the password, so it's not a default
   });
 
   await user.save();
 
-  // Send welcome email with login credentials
-  let emailSent = false;
-  let emailError = null;
-  try {
-    await emailService.sendWelcomeEmail(user.email, user.firstName, tempPassword);
-    emailSent = true;
-    console.log(`Welcome email sent successfully to ${user.email}`);
-  } catch (error) {
-    console.error('Failed to send welcome email:', error);
-    emailError = error.message;
-    // Don't fail the user creation if email fails, but log the error
-  }
-
   res.status(201).json({
     success: true,
-    message: emailSent 
-      ? 'User created successfully and welcome email sent' 
-      : 'User created successfully, but welcome email could not be sent',
+    message: 'User created successfully',
     data: {
       user: {
         id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
+        phoneNumber: user.phoneNumber,
         role: user.role,
         manager: user.manager
       },
-      emailStatus: {
-        sent: emailSent,
-        error: emailError
+      credentials: {
+        email: user.email,
+        password: password,
+        note: 'Please share these credentials with the user offline'
       }
     }
   });

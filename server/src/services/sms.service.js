@@ -14,7 +14,11 @@ class SMSService {
     try {
       if (config.SMS_SERVICE_PROVIDER === 'twilio') {
         if (!config.TWILIO_ACCOUNT_SID || !config.TWILIO_AUTH_TOKEN || !config.TWILIO_PHONE_NUMBER) {
-          logger.warn('Twilio SMS service not fully configured. SMS functionality will be disabled.');
+          logger.warn('Twilio SMS service not fully configured. Falling back to development mode.');
+          // Fall back to development mode
+          this.isConfigured = true;
+          this.isDevelopmentMode = true;
+          logger.info('SMS service running in development mode - OTPs will be logged to console');
           return;
         }
 
@@ -27,10 +31,16 @@ class SMSService {
         this.isDevelopmentMode = true;
         logger.info('SMS service running in development mode - OTPs will be logged to console');
       } else {
-        logger.warn(`Unsupported SMS service provider: ${config.SMS_SERVICE_PROVIDER}`);
+        logger.warn(`Unsupported SMS service provider: ${config.SMS_SERVICE_PROVIDER}. Falling back to development mode.`);
+        this.isConfigured = true;
+        this.isDevelopmentMode = true;
+        logger.info('SMS service running in development mode - OTPs will be logged to console');
       }
     } catch (error) {
-      logger.error('Failed to initialize SMS service:', error);
+      logger.error('Failed to initialize SMS service, falling back to development mode:', error);
+      this.isConfigured = true;
+      this.isDevelopmentMode = true;
+      logger.info('SMS service running in development mode - OTPs will be logged to console');
     }
   }
 

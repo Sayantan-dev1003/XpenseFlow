@@ -10,6 +10,8 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
     firstName: '',
     lastName: '',
     email: '',
+    phoneNumber: '',
+    password: '',
     role: '',
     manager: ''
   });
@@ -65,6 +67,20 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
       newErrors.email = 'Email is invalid';
     }
 
+    if (!formData.phoneNumber) {
+      newErrors.phoneNumber = 'Phone number is required';
+    } else if (!/^\+?[\d\s\-()]+$/.test(formData.phoneNumber)) {
+      newErrors.phoneNumber = 'Please enter a valid phone number';
+    }
+
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(formData.password)) {
+      newErrors.password = 'Password must contain at least one lowercase letter, one uppercase letter, and one number';
+    }
+
     if (!formData.role) {
       newErrors.role = 'Role is required';
     }
@@ -105,6 +121,8 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
           firstName: '',
           lastName: '',
           email: '',
+          phoneNumber: '',
+          password: '',
           role: '',
           manager: ''
         });
@@ -156,7 +174,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
                 onChange={handleChange}
                 error={errors.firstName}
                 required
-                className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
+                className="bg-gray-50 text-gray-500 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
               />
             </div>
             <div>
@@ -169,7 +187,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
                 onChange={handleChange}
                 error={errors.lastName}
                 required
-                className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
+                className="bg-gray-50 text-gray-500 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
               />
             </div>
           </div>
@@ -185,7 +203,37 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
               onChange={handleChange}
               error={errors.email}
               required
-              className="bg-gray-50 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
+              className="bg-gray-50 text-gray-500 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
+            />
+          </div>
+
+          {/* Phone Number */}
+          <div>
+            <Input
+              label="Phone Number"
+              name="phoneNumber"
+              type="tel"
+              placeholder="Enter phone number"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              error={errors.phoneNumber}
+              required
+              className="bg-gray-50 text-gray-500 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <Input
+              label="Password"
+              name="password"
+              type="password"
+              placeholder="Enter password"
+              value={formData.password}
+              onChange={handleChange}
+              error={errors.password}
+              required
+              className="bg-gray-50 text-gray-500 border-gray-200 focus:border-purple-500 rounded-xl text-grey-500"
             />
           </div>
 
@@ -256,8 +304,8 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
                 </svg>
               </div>
               <div className="text-sm text-blue-800">
-                <p className="font-medium mb-1">Welcome Email</p>
-                <p>The new user will receive an email with their login credentials and a temporary password (123456).</p>
+                <p className="font-medium mb-1">User Credentials</p>
+                <p>Please share the login credentials (email and password) with the new user offline. They will need these to log in to the system.</p>
               </div>
             </div>
           </div>

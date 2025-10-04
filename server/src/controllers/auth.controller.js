@@ -189,106 +189,43 @@ const login = asyncHandler(async (req, res) => {
   // Reset login attempts
   await user.resetLoginAttempts();
 
-  // Return user info for OTP method selection
-  res.status(200).json({
-    success: true,
-    message: 'Credentials verified. Please select OTP method.',
-    data: {
-      userId: user._id,
-      email: user.email,
-      phoneNumber: user.phoneNumber,
-      hasEmail: !!user.email,
-      hasPhone: !!user.phoneNumber,
-      role: user.role
-    }
-  });
-});
-
-// Send OTP for login - Step 2: Send OTP based on method
-const sendLoginOTP = asyncHandler(async (req, res) => {
-  const { userId, method } = req.body;
-
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new AppError('User not found', 404);
+  // Check if user has phone number for SMS verification
+  if (!user.phoneNumber) {
+    throw new AppError('Phone number is required for SMS verification. Please contact your administrator.', 400);
   }
 
+  // Automatically send SMS OTP
   try {
-    let result;
-    if (method === 'email') {
-      result = await otpService.sendOTP(userId, 'email');
-    } else if (method === 'phone') {
-      try {
-        result = await otpService.sendOTP(userId, 'phone');
-      } catch (smsError) {
-        // If SMS fails and user has email, automatically fallback to email
-        if (user.email && (smsError.message.includes('SMS service is currently unavailable') || 
-            smsError.message.includes('SMS service is temporarily unavailable'))) {
-          
-          console.log(`SMS failed for user ${userId}, falling back to email`);
-          result = await otpService.sendOTP(userId, 'email');
-          
-          // Update the response to indicate fallback
-          res.status(200).json({
-            success: true,
-            message: 'SMS service is temporarily unavailable. OTP sent to your email instead.',
-            data: {
-              userId,
-              method: 'email', // Changed to email
-              originalMethod: 'phone', // Keep track of original request
-              maskedContact: result.maskedContact,
-              fallback: true
-            }
-          });
-          return;
-        } else {
-          // Re-throw SMS errors if no email fallback available
-          throw smsError;
-        }
-      }
-    } else {
-      throw new AppError('Invalid OTP method', 400);
-    }
-
+    const result = await otpService.sendOTP(user._id, 'phone');
+    
     res.status(200).json({
       success: true,
-      message: result.message,
+      message: 'SMS verification code sent successfully.',
       data: {
-        userId,
-        method,
-        maskedContact: result.maskedContact
+        userId: user._id,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+        maskedPhone: user.phoneNumber ? `${user.phoneNumber.substring(0, 3)}***${user.phoneNumber.substring(user.phoneNumber.length - 3)}` : '',
+        role: user.role,
+        method: 'phone'
       }
     });
   } catch (error) {
-    // Handle specific error types
-    if (error.message.includes('SMS service is currently unavailable') || 
-        error.message.includes('SMS service is temporarily unavailable')) {
-      throw new AppError(error.message, 503);
-    } else if (error.message.includes('Invalid phone number format')) {
-      throw new AppError(error.message, 400);
-    } else if (error.message.includes('Email service not configured') ||
-               error.message.includes('Email authentication failed') ||
-               error.message.includes('Email service authentication failed')) {
-      throw new AppError('Email service is currently unavailable. Please contact administrator or try SMS verification.', 503);
-    } else if (error.message.includes('Email service temporarily unavailable')) {
-      throw new AppError('Email service is temporarily unavailable. Please try again later or contact administrator.', 503);
-    } else {
-      // Re-throw other errors as they are
-      throw error;
-    }
+    // If SMS fails, throw error
+    throw new AppError('Failed to send SMS verification code. Please contact your administrator.', 500);
   }
 });
 
-// Verify OTP for login - Step 3: Verify OTP and complete login
+// Verify OTP for login - Step 2: Verify OTP and complete login
 const verifyLoginOTP = asyncHandler(async (req, res) => {
-  const { otp, userId, method } = req.body;
+  const { otp, userId } = req.body;
 
   const user = await User.findById(userId);
   if (!user) {
     throw new AppError('User not found', 404);
   }
 
-  const result = await otpService.verifyOTP(userId, otp, method);
+  const result = await otpService.verifyOTP(userId, otp, 'phone');
 
   if (result.success) {
     // Update last login
@@ -517,7 +454,6 @@ const getSMSStatus = asyncHandler(async (req, res) => {
 module.exports = {
   register: [validate(registerSchema), register],
   login: [validate(loginSchema), login],
-  sendLoginOTP: [validate(sendLoginOTPSchema), sendLoginOTP],
   verifyLoginOTP: [validate(verifyLoginOTPSchema), verifyLoginOTP],
   logout,
   forgotPassword: [validate(passwordResetRequestSchema), forgotPassword],

@@ -3,7 +3,6 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { useAuth } from '../hooks/useAuth.js';
 import LoginStep1 from '../components/auth/LoginStep1.jsx';
-import LoginStep2 from '../components/auth/LoginStep2.jsx';
 import LoginStep3 from '../components/auth/LoginStep3.jsx';
 import ForgotPassword from '../components/auth/ForgotPassword.jsx';
 
@@ -17,7 +16,7 @@ const LoginPage = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
 
-  const { login, sendLoginOTP, verifyLoginOTP, clearError } = useAuth();
+  const { login, verifyLoginOTP, clearError } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -59,6 +58,9 @@ const LoginPage = () => {
       
       if (result.success) {
         setLoginData(result.data);
+        // Skip step 2 (method selection) and go directly to step 2 (OTP verification)
+        setOtpMethod('phone'); // Always use phone/SMS
+        setMaskedContact(result.data.maskedPhone || 'your phone');
         setCurrentStep(2);
       } else {
         setError(result.error);
@@ -69,46 +71,6 @@ const LoginPage = () => {
       setIsLoading(false);
     }
   }, [login, selectedRole]);
-
-  const handleMethodSelect = async (method) => {
-    setIsLoading(true);
-    setError('');
-    
-    try {
-      const result = await sendLoginOTP(loginData.userId, method);
-      setIsLoading(false);
-
-      if (result.success) {
-        // Handle fallback case where SMS was requested but email was used
-        if (result.data.fallback && result.data.originalMethod === 'phone') {
-          setOtpMethod('email'); // Update to email since that's what was actually sent
-          setError('SMS service is temporarily unavailable. OTP sent to your email instead.');
-        } else {
-          setOtpMethod(method);
-        }
-        setMaskedContact(result.data.maskedContact);
-        setCurrentStep(3);
-      } else {
-        setError(result.error);
-      }
-    } catch (error) {
-      setIsLoading(false);
-      
-      // Handle specific error cases
-      if (error.response?.status === 503) {
-        // SMS service unavailable - suggest email instead
-        if (method === 'phone' && loginData.hasEmail) {
-          setError('SMS service is temporarily unavailable. Please try email verification instead.');
-        } else {
-          setError(error.response?.data?.message || 'Service temporarily unavailable. Please try again later.');
-        }
-      } else if (error.response?.status === 400) {
-        setError(error.response?.data?.message || 'Invalid request. Please check your information and try again.');
-      } else {
-        setError(error.response?.data?.message || 'An error occurred. Please try again.');
-      }
-    }
-  };
 
   const handleOtpVerify = async (otp) => {
     setIsLoading(true);
@@ -158,28 +120,21 @@ const LoginPage = () => {
     setError('');
     
     try {
-      const result = await sendLoginOTP(loginData.userId, otpMethod);
+      // Since we're using SMS-only, we need to call login again to resend SMS
+      const credentialsWithRole = { 
+        email: loginData.email, 
+        password: loginData.password, 
+        role: selectedRole 
+      };
+      const result = await login(credentialsWithRole);
       setIsLoading(false);
 
       if (!result.success) {
         setError(result.error);
       }
-    } catch (error) {
+    } catch {
       setIsLoading(false);
-      
-      // Handle specific error cases
-      if (error.response?.status === 503) {
-        // SMS service unavailable - suggest email instead
-        if (otpMethod === 'phone' && loginData.hasEmail) {
-          setError('SMS service is temporarily unavailable. Please try email verification instead.');
-        } else {
-          setError(error.response?.data?.message || 'Service temporarily unavailable. Please try again later.');
-        }
-      } else if (error.response?.status === 400) {
-        setError(error.response?.data?.message || 'Invalid request. Please check your information and try again.');
-      } else {
-        setError(error.response?.data?.message || 'An error occurred. Please try again.');
-      }
+      setError('Failed to resend SMS. Please try again.');
     }
   };
 
@@ -187,8 +142,6 @@ const LoginPage = () => {
     if (currentStep === 2) {
       setCurrentStep(1);
       setLoginData(null);
-    } else if (currentStep === 3) {
-      setCurrentStep(2);
       setOtpMethod(null);
       setMaskedContact('');
     }
@@ -244,7 +197,7 @@ const LoginPage = () => {
             {!showForgotPassword && (
               <div className="mb-8">
                 <div className="flex items-center justify-center space-x-4">
-                  {[1, 2, 3].map((step) => (
+                  {[1, 2].map((step) => (
                     <div key={step} className="flex items-center">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                         step <= currentStep 
@@ -253,7 +206,7 @@ const LoginPage = () => {
                       }`}>
                         {step}
                       </div>
-                      {step < 3 && (
+                      {step < 2 && (
                         <div className={`w-12 h-0.5 mx-2 ${
                           step < currentStep ? 'bg-purple-600' : 'bg-gray-200'
                         }`} />
@@ -284,15 +237,6 @@ const LoginPage = () => {
                   )}
                   
                   {currentStep === 2 && (
-                    <LoginStep2
-                      userData={loginData}
-                      onMethodSelect={handleMethodSelect}
-                      onBack={handleBack}
-                      isLoading={isLoading}
-                    />
-                  )}
-                  
-                  {currentStep === 3 && (
                     <LoginStep3
                       userData={loginData}
                       method={otpMethod}

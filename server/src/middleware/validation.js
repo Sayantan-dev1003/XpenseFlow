@@ -115,6 +115,14 @@ const createUserSchema = Joi.object({
     'any.required': 'Email is required',
     'string.email': 'Please enter a valid email address'
   }),
+  phoneNumber: commonPatterns.phoneNumber.required().messages({
+    'any.required': 'Phone number is required',
+    'string.pattern.base': 'Please enter a valid phone number'
+  }),
+  password: commonPatterns.password.required().messages({
+    'any.required': 'Password is required',
+    'string.min': 'Password must be at least 6 characters long'
+  }),
   role: Joi.string().valid('employee', 'manager', 'finance').required().messages({
     'any.required': 'Role is required',
     'any.only': 'Role must be employee, manager, or finance'

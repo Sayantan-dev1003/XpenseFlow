@@ -126,7 +126,7 @@ const LoginStep3 = ({ userData, method, maskedContact, onVerify, onBack, onResen
           onClick={onBack}
           className="text-purple-600 hover:text-purple-700 font-medium text-sm"
         >
-          ← Back to Method Selection
+          ← Back to Login
         </button>
       </div>
     </div>
