@@ -91,6 +91,9 @@ class OCRService {
       extractedVendor: null,
       extractedCategory: null,
       extractedDescription: null,
+      extractedTags: [],
+      extractedNotes: null,
+      extractedCurrency: null,
       confidence: 0
     };
 
@@ -122,6 +125,17 @@ class OCRService {
         // Usually the largest amount is the total
         data.extractedAmount = Math.max(...amounts);
         data.confidence += 30;
+      }
+
+      // Extract currency
+      if (text.includes('INR') || text.includes('₹')) {
+        data.extractedCurrency = 'INR';
+      } else if (text.includes('$') || text.includes('USD')) {
+        data.extractedCurrency = 'USD';
+      } else if (text.includes('€') || text.includes('EUR')) {
+        data.extractedCurrency = 'EUR';
+      } else if (text.includes('£') || text.includes('GBP')) {
+        data.extractedCurrency = 'GBP';
       }
 
       // Extract date - various date formats
@@ -216,10 +230,10 @@ class OCRService {
       }
 
       // Extract description from items or context
-      const lines = text.split('\n').filter(line => line.trim().length > 0);
+      const textLines = text.split('\n').filter(line => line.trim().length > 0);
       const itemLines = [];
       
-      for (const line of lines) {
+      for (const line of textLines) {
         const trimmedLine = line.trim();
         // Look for lines that might be item descriptions
         if (trimmedLine.length > 3 && 
@@ -247,6 +261,49 @@ class OCRService {
         // Take the first few meaningful lines as description
         data.extractedDescription = itemLines.slice(0, 3).join(', ');
         data.confidence += 10;
+      }
+
+      // Generate tags based on extracted data
+      const tags = [];
+      if (data.extractedVendor) {
+        tags.push(data.extractedVendor.split(' ')[0]); // First word of vendor name
+      }
+      if (data.extractedCategory) {
+        tags.push(data.extractedCategory.toLowerCase());
+      }
+      if (data.extractedCurrency) {
+        tags.push(data.extractedCurrency);
+      }
+      
+      // Add location-based tags if found
+      const locationKeywords = ['restaurant', 'hotel', 'airport', 'station', 'mall', 'store'];
+      locationKeywords.forEach(keyword => {
+        if (text.toLowerCase().includes(keyword)) {
+          tags.push(keyword);
+        }
+      });
+      
+      data.extractedTags = [...new Set(tags)]; // Remove duplicates
+
+      // Extract notes from receipt ID, payment method, or other details
+      const notePatterns = [
+        /receipt\s*id[:\s]*([a-zA-Z0-9-]+)/gi,
+        /payment\s*method[:\s]*([a-zA-Z\s]+)/gi,
+        /card\s*\([X\d-]+\)/gi
+      ];
+      
+      const notes = [];
+      notePatterns.forEach(pattern => {
+        const matches = [...text.matchAll(pattern)];
+        matches.forEach(match => {
+          if (match[1]) {
+            notes.push(match[0]);
+          }
+        });
+      });
+      
+      if (notes.length > 0) {
+        data.extractedNotes = notes.join(', ');
       }
 
       // Additional confidence based on text quality

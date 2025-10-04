@@ -25,6 +25,7 @@ const ExpenseSubmissionForm = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [autoFilledFields, setAutoFilledFields] = useState(new Set());
 
   useEffect(() => {
     loadInitialData();
@@ -101,31 +102,70 @@ const ExpenseSubmissionForm = () => {
     
     // Auto-fill form with OCR extracted data
     const updates = {};
+    const filledFields = new Set();
     
+    // Title - only if empty
+    if (ocrData.extractedVendor && !formData.title.trim()) {
+      updates.title = `Expense from ${ocrData.extractedVendor}`;
+      filledFields.add('title');
+    }
+    
+    // Amount
     if (ocrData.extractedAmount) {
       updates.amount = ocrData.extractedAmount.toString();
+      filledFields.add('amount');
     }
     
+    // Currency
+    if (ocrData.extractedCurrency) {
+      const currencyCode = ocrData.extractedCurrency;
+      const currencyExists = currencies.includes(currencyCode);
+      if (currencyExists) {
+        updates.currency = {
+          code: currencyCode,
+          name: currencyCode,
+          symbol: currencyCode === 'USD' ? '$' : currencyCode === 'EUR' ? '€' : currencyCode === 'GBP' ? '£' : '₹'
+        };
+        filledFields.add('currency');
+      }
+    }
+    
+    // Date
     if (ocrData.extractedDate) {
       updates.date = new Date(ocrData.extractedDate).toISOString().split('T')[0];
+      filledFields.add('date');
     }
     
-    if (ocrData.extractedVendor && !formData.title) {
-      updates.title = `Expense from ${ocrData.extractedVendor}`;
-    }
-    
+    // Category
     if (ocrData.extractedCategory) {
-      // Check if the extracted category matches available categories
       const matchingCategory = categories.find(cat => 
         cat.name.toLowerCase() === ocrData.extractedCategory.toLowerCase()
       );
       if (matchingCategory) {
         updates.category = matchingCategory.name;
+        filledFields.add('category');
       }
     }
     
-    if (ocrData.extractedDescription) {
+    // Description - only if empty
+    if (ocrData.extractedDescription && !formData.description.trim()) {
       updates.description = ocrData.extractedDescription;
+      filledFields.add('description');
+    }
+    
+    // Tags
+    if (ocrData.extractedTags && ocrData.extractedTags.length > 0) {
+      // Merge with existing tags
+      const existingTags = formData.tags || [];
+      const newTags = [...new Set([...existingTags, ...ocrData.extractedTags])];
+      updates.tags = newTags;
+      filledFields.add('tags');
+    }
+    
+    // Notes - only if empty
+    if (ocrData.extractedNotes && !formData.notes.trim()) {
+      updates.notes = ocrData.extractedNotes;
+      filledFields.add('notes');
     }
 
     // Apply all updates at once
@@ -135,7 +175,15 @@ const ExpenseSubmissionForm = () => {
         ...updates
       }));
       
-      toast.success(`Receipt data extracted successfully! (${ocrData.confidence}% confidence)`);
+      setAutoFilledFields(filledFields);
+      
+      // Clear auto-filled highlighting after 5 seconds
+      setTimeout(() => {
+        setAutoFilledFields(new Set());
+      }, 5000);
+      
+      const fieldsCount = filledFields.size;
+      toast.success(`Receipt data extracted! ${fieldsCount} field${fieldsCount > 1 ? 's' : ''} auto-filled (${ocrData.confidence}% confidence)`);
     } else {
       toast.info('Receipt processed, but no data could be extracted automatically.');
     }
@@ -233,8 +281,9 @@ const ExpenseSubmissionForm = () => {
                     name="title"
                     value={formData.title}
                     onChange={handleInputChange}
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.title ? 'border-red-300' : 'border-gray-300'
+                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                      errors.title ? 'border-red-300' : 
+                      autoFilledFields.has('title') ? 'border-green-400 bg-green-50' : 'border-gray-300'
                     }`}
                     placeholder="Enter expense title"
                   />
@@ -256,8 +305,9 @@ const ExpenseSubmissionForm = () => {
                     onChange={handleInputChange}
                     step="0.01"
                     min="0"
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.amount ? 'border-red-300' : 'border-gray-300'
+                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                      errors.amount ? 'border-red-300' : 
+                      autoFilledFields.has('amount') ? 'border-green-400 bg-green-50' : 'border-gray-300'
                     }`}
                     placeholder="0.00"
                   />
@@ -275,7 +325,9 @@ const ExpenseSubmissionForm = () => {
                   name="currency"
                   value={formData.currency.code}
                   onChange={handleCurrencyChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                    autoFilledFields.has('currency') ? 'border-green-400 bg-green-50' : 'border-gray-300'
+                  }`}
                 >
                   {currencies.map((currency) => (
                     <option key={currency} value={currency}>
@@ -295,8 +347,9 @@ const ExpenseSubmissionForm = () => {
                     name="category"
                     value={formData.category}
                     onChange={handleInputChange}
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.category ? 'border-red-300' : 'border-gray-300'
+                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                      errors.category ? 'border-red-300' : 
+                      autoFilledFields.has('category') ? 'border-green-400 bg-green-50' : 'border-gray-300'
                     }`}
                   >
                     <option value="">Select a category</option>
@@ -322,8 +375,9 @@ const ExpenseSubmissionForm = () => {
                     name="date"
                     value={formData.date}
                     onChange={handleInputChange}
-                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.date ? 'border-red-300' : 'border-gray-300'
+                    className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                      errors.date ? 'border-red-300' : 
+                      autoFilledFields.has('date') ? 'border-green-400 bg-green-50' : 'border-gray-300'
                     }`}
                   />
                   <FiCalendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400 pointer-events-none" />
@@ -341,7 +395,9 @@ const ExpenseSubmissionForm = () => {
                   rows={3}
                   value={formData.description}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                    autoFilledFields.has('description') ? 'border-green-400 bg-green-50' : 'border-gray-300'
+                  }`}
                   placeholder="Enter expense description"
                 />
               </div>
@@ -356,7 +412,9 @@ const ExpenseSubmissionForm = () => {
                   name="tags"
                   value={formData.tags.join(', ')}
                   onChange={handleTagsChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                    autoFilledFields.has('tags') ? 'border-green-400 bg-green-50' : 'border-gray-300'
+                  }`}
                   placeholder="Enter tags separated by commas"
                 />
                 <p className="mt-1 text-sm text-gray-500">Separate multiple tags with commas</p>
@@ -372,7 +430,9 @@ const ExpenseSubmissionForm = () => {
                   rows={3}
                   value={formData.notes}
                   onChange={handleInputChange}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
+                    autoFilledFields.has('notes') ? 'border-green-400 bg-green-50' : 'border-gray-300'
+                  }`}
                   placeholder="Additional notes"
                 />
               </div>
