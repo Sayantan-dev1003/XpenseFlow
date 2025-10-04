@@ -1,22 +1,22 @@
 version: '3.8'
 
 services:
-  # MongoDB Database
-  mongodb:
-    image: mongo:7.0
-    container_name: expense_mongodb
-    restart: unless-stopped
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
-      MONGO_INITDB_DATABASE: expense_management
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-    networks:
-      - expense_network
+  # MongoDB Database (Using Atlas - local MongoDB commented out)
+  # mongodb:
+  #   image: mongo:7.0
+  #   container_name: expense_mongodb
+  #   restart: unless-stopped
+  #   environment:
+  #     MONGO_INITDB_ROOT_USERNAME: admin
+  #     MONGO_INITDB_ROOT_PASSWORD: password123
+  #     MONGO_INITDB_DATABASE: expense_management
+  #   ports:
+  #     - "27017:27017"
+  #   volumes:
+  #     - mongodb_data:/data/db
+  #     - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+  #   networks:
+  #     - expense_network
 
   # Backend API
   backend:
@@ -28,7 +28,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/expense_management?authSource=admin
+      MONGODB_URI: mongodb+srv://sayantanhalder78_db_user:8MNa3JM2KXLLbb15@xpenseflow.bootzx1.mongodb.net/expense_management?retryWrites=true&w=majority&appName=XpenseFlow
       JWT_SECRET: your-super-secret-jwt-key-change-this-in-production-minimum-32-characters
       JWT_EXPIRE: 15m
       JWT_REFRESH_SECRET: your-super-secret-refresh-key-change-this-in-production-minimum-32-characters
@@ -41,8 +41,8 @@ services:
     volumes:
       - ./server/uploads:/app/uploads
       - ./server/logs:/app/logs
-    depends_on:
-      - mongodb
+    # depends_on:
+    #   - mongodb  # Commented out since using Atlas
     networks:
       - expense_network
     healthcheck:
