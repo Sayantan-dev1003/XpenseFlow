@@ -6,7 +6,6 @@ const {
   createUserSchema,
   validate 
 } = require('../middleware/validation');
-const emailService = require('../services/email.service');
 const crypto = require('crypto');
 
 // Create new user (Admin only)
@@ -87,7 +86,7 @@ const getCompanyUsers = asyncHandler(async (req, res) => {
 
   const users = await User.find({ company: companyId })
     .populate('manager', 'firstName lastName email')
-    .select('-password -passwordResetToken -passwordResetExpires -phoneVerificationToken -phoneVerificationExpires -emailVerificationToken -emailVerificationExpires')
+    .select('-password -passwordResetToken -passwordResetExpires')
     .sort({ createdAt: -1 });
 
   res.status(200).json({
@@ -192,30 +191,6 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   });
 });
 
-// Test email configuration (Admin only)
-const testEmailConfig = asyncHandler(async (req, res) => {
-  // Only admins can test email configuration
-  if (!req.user.isAdmin()) {
-    throw new AppError('Only administrators can test email configuration', 403);
-  }
-
-  const testEmail = req.body.email || req.user.email;
-  
-  try {
-    await emailService.sendWelcomeEmail(testEmail, 'Test User', '123456');
-    res.status(200).json({
-      success: true,
-      message: 'Test email sent successfully',
-      data: { testEmail }
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to send test email',
-      error: error.message
-    });
-  }
-});
 
 module.exports = {
   createUser: [validate(createUserSchema), createUser],
@@ -223,6 +198,5 @@ module.exports = {
   getManagers,
   changePassword: [validate(changePasswordSchema), changePassword],
   getUserStats,
-  getCurrentUser,
-  testEmailConfig
+  getCurrentUser
 };

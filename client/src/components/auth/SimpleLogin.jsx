@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Button from '../common/Button.jsx';
 import { Link } from 'react-router-dom';
 
-const LoginStep1 = ({ onSubmit, isLoading, error, selectedRole, onRoleChange }) => {
+const SimpleLogin = ({ onSubmit, isLoading, error }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -94,34 +94,6 @@ const LoginStep1 = ({ onSubmit, isLoading, error, selectedRole, onRoleChange }) 
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Role Selection */}
-        <div className="space-y-1">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </div>
-            <select
-              value={selectedRole}
-              onChange={(e) => onRoleChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 text-gray-500 border border-gray-300 rounded-lg outline-purple-500 appearance-none bg-white"
-              required
-            >
-              <option value="">Select your role</option>
-              <option value="admin">Admin</option>
-              <option value="manager">Manager</option>
-              <option value="employee">Employee</option>
-              <option value="finance">Finance</option>
-            </select>
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </div>
-        </div>
-
         {/* Email Input */}
         <div className="space-y-1">
           <div className="relative">
@@ -192,6 +164,7 @@ const LoginStep1 = ({ onSubmit, isLoading, error, selectedRole, onRoleChange }) 
           Forgot Password?
         </button>
       </div>
+      
       {/* Register Link */}
       <p className="text-center text-gray-600">
         Don't have an account?{' '}
@@ -206,4 +179,4 @@ const LoginStep1 = ({ onSubmit, isLoading, error, selectedRole, onRoleChange }) 
   );
 };
 
-export default LoginStep1;
+export default SimpleLogin;

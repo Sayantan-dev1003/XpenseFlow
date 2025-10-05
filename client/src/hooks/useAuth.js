@@ -19,28 +19,16 @@ export const useAuthState = () => {
 export const useAuthActions = () => {
   const { 
     login, 
-    sendLoginOTP,
-    verifyLoginOTP,
     register, 
     logout, 
-    verifyOTP, 
-    resendOTP, 
-    googleLogin,
-    githubLogin,
     clearError,
     handleAuthFailure
   } = useAuth();
   
   return {
     login,
-    sendLoginOTP,
-    verifyLoginOTP,
     register,
     logout,
-    verifyOTP,
-    resendOTP,
-    googleLogin,
-    githubLogin,
     clearError,
     handleAuthFailure
   };

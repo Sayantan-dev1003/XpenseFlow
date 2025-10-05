@@ -159,17 +159,17 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left Side - Background Image (60%) - Fixed */}
-      <div className="w-3/5 fixed h-full overflow-hidden bg-purple-100/80">
+      <div className="w-1/2 fixed h-full overflow-hidden bg-gradient-to-br from-purple-100 to-violet-300">
         <img 
           src="/background.png" 
           alt="Authentication Flow Illustration" 
-          className="w-full h-full object-contain"
+          className="w-full h-full object-fit"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-purple-900/20 to-transparent"></div>
       </div>
 
       {/* Right Side - Register Form (40%) - Scrollable */}
-      <div className="w-2/5 ml-auto bg-white overflow-y-auto">
+      <div className="w-1/2 ml-auto bg-white overflow-y-auto">
         <div className="min-h-screen flex flex-col justify-center px-16 lg:px-20 xl:px-24 py-12">
           <div className="max-w-lg w-full">
             {/* Header */}

@@ -13,7 +13,7 @@ const FeaturesSection = () => {
     },
     {
       icon: Brain,
-      title: 'AI & OCR Receipts',
+      title: 'OCR Receipts',
       description: 'Intelligent receipt scanning that automatically extracts data and categorizes expenses with 99% accuracy.',
       gradient: 'from-[#7A5CFA] to-[#B983FF]',
       delay: 0.2

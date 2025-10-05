@@ -1,5 +1,5 @@
 {
-  "name": "AuthFlow",
+  "name": "XpenseFlow",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
@@ -12,7 +12,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "authflow": "file:..",
     "axios": "^1.6.0",
     "bcryptjs": "^3.0.2",
     "connect-mongo": "^5.1.0",
@@ -30,12 +29,8 @@
     "mongoose": "^8.18.1",
     "morgan": "^1.10.1",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^7.0.6",
     "passport": "^0.7.0",
-    "passport-github2": "^0.1.12",
-    "passport-google-oauth20": "^2.0.0",
     "passport-local": "^1.0.0",
-    "twilio": "^5.9.0",
     "winston": "^3.11.0"
   },
   "devDependencies": {

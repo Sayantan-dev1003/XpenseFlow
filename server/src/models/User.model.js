@@ -45,20 +45,13 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  googleId: {
-    type: String
-  },
   authProvider: {
     type: String,
-    enum: ['local', 'google'],
+    enum: ['local'],
     default: 'local'
   },
   passwordResetToken: String,
   passwordResetExpires: Date,
-  phoneVerificationToken: String,
-  phoneVerificationExpires: Date,
-  emailVerificationToken: String,
-  emailVerificationExpires: Date,
   lastLogin: {
     type: Date,
     default: Date.now
@@ -106,14 +99,6 @@ const userSchema = new mongoose.Schema({
     default: Date.now
   },
   preferences: {
-    emailNotifications: {
-      type: Boolean,
-      default: true
-    },
-    smsNotifications: {
-      type: Boolean,
-      default: false
-    },
     theme: {
       type: String,
       enum: ['light', 'dark', 'auto'],
@@ -138,7 +123,6 @@ userSchema.virtual('isLocked').get(function() {
 
 // Index for better performance
 userSchema.index({ email: 1 }, { unique: true });
-userSchema.index({ googleId: 1 }, { sparse: true });
 userSchema.index({ company: 1 });
 userSchema.index({ manager: 1 });
 userSchema.index({ role: 1 });
@@ -220,19 +204,9 @@ userSchema.methods.canManage = function(userId) {
   return false;
 };
 
-// Static method to find user by email or social ID
-userSchema.statics.findByCredentials = async function(email, socialId = null) {
-  let user;
-  
-  if (socialId) {
-    user = await this.findOne({
-      googleId: socialId
-    });
-  } else {
-    user = await this.findOne({ email: email.toLowerCase() });
-  }
-  
-  return user;
+// Static method to find user by email
+userSchema.statics.findByCredentials = async function(email) {
+  return await this.findOne({ email: email.toLowerCase() });
 };
 
 // Static method to get team members for a manager

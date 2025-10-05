@@ -9,8 +9,6 @@ const {
   clearSecureCookies,
   generateSecureToken 
 } = require('../utils/generateTokens');
-const otpService = require('../services/otp.service');
-const emailService = require('../services/email.service');
 const currencyService = require('../services/currency.service');
 const { securityLogger } = require('../utils/logger');
 const { asyncHandler, AppError } = require('../middleware/error.middleware');
@@ -20,8 +18,6 @@ const {
   passwordResetRequestSchema,
   passwordResetSchema,
   changePasswordSchema,
-  sendLoginOTPSchema,
-  verifyLoginOTPSchema,
   validate 
 } = require('../middleware/validation');
 
@@ -155,15 +151,15 @@ const register = asyncHandler(async (req, res) => {
   });
 });
 
-// Login user - Step 1: Check credentials
+// Login user - Simple login with credentials
 const login = asyncHandler(async (req, res) => {
-  const { email, password, role } = req.body;
+  const { email, password } = req.body;
 
   // Find user
   const user = await User.findOne({ email: email.toLowerCase() }).select('+password');
   if (!user) {
     securityLogger.loginAttempt(email, false, req.ip, req.get('User-Agent'));
-    throw new AppError('Something went wrong', 401);
+    throw new AppError('Invalid email or password', 401);
   }
 
   // Check if account is locked
@@ -177,102 +173,54 @@ const login = asyncHandler(async (req, res) => {
   if (!isPasswordValid) {
     await user.incLoginAttempts();
     securityLogger.loginAttempt(email, false, req.ip, req.get('User-Agent'));
-    throw new AppError('Something went wrong', 401);
-  }
-
-  // Validate role if provided
-  if (role && user.role !== role) {
-    securityLogger.loginAttempt(email, false, req.ip, req.get('User-Agent'), 'Role mismatch');
-    throw new AppError('Invalid role selection for this account', 401);
+    throw new AppError('Invalid email or password', 401);
   }
 
   // Reset login attempts
   await user.resetLoginAttempts();
 
-  // Check if user has phone number for SMS verification
-  if (!user.phoneNumber) {
-    throw new AppError('Phone number is required for SMS verification. Please contact your administrator.', 400);
-  }
+  // Update last login
+  user.lastLogin = new Date();
+  await user.save();
 
-  // Automatically send SMS OTP
-  try {
-    const result = await otpService.sendOTP(user._id, 'phone');
-    
-    res.status(200).json({
-      success: true,
-      message: 'SMS verification code sent successfully.',
-      data: {
-        userId: user._id,
+  // Generate tokens
+  const { accessToken, refreshToken } = generateTokens(user._id);
+
+  // Save refresh token
+  await Token.createToken(user._id, 'refresh', '30d', {
+    ipAddress: req.ip,
+    userAgent: req.get('User-Agent')
+  });
+
+  // Set secure cookies
+  setSecureCookies(res, accessToken, refreshToken);
+
+  // Log successful login
+  securityLogger.loginAttempt(user.email, true, req.ip, req.get('User-Agent'));
+
+  res.status(200).json({
+    success: true,
+    message: 'Login successful',
+    data: {
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         email: user.email,
-        phoneNumber: user.phoneNumber,
-        maskedPhone: user.phoneNumber ? `${user.phoneNumber.substring(0, 3)}***${user.phoneNumber.substring(user.phoneNumber.length - 3)}` : '',
+        profilePicture: user.profilePicture,
         role: user.role,
-        method: 'phone'
+        company: user.company
       }
-    });
-  } catch (error) {
-    // If SMS fails, throw error
-    throw new AppError('Failed to send SMS verification code. Please contact your administrator.', 500);
-  }
+    }
+  });
 });
 
-// Verify OTP for login - Step 2: Verify OTP and complete login
-const verifyLoginOTP = asyncHandler(async (req, res) => {
-  const { otp, userId } = req.body;
-
-  const user = await User.findById(userId);
-  if (!user) {
-    throw new AppError('User not found', 404);
-  }
-
-  const result = await otpService.verifyOTP(userId, otp, 'phone');
-
-  if (result.success) {
-    // Update last login
-    user.lastLogin = new Date();
-    await user.save();
-
-    // Generate tokens
-    const { accessToken, refreshToken } = generateTokens(user._id);
-
-    // Save refresh token
-    await Token.createToken(user._id, 'refresh', '30d', {
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
-    });
-
-    // Set secure cookies
-    setSecureCookies(res, accessToken, refreshToken);
-
-    // Log successful login
-    securityLogger.loginAttempt(user.email, true, req.ip, req.get('User-Agent'));
-
-    res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          profilePicture: user.profilePicture,
-          role: user.role,
-          company: user.company
-        },
-        accessToken,
-        refreshToken
-      }
-    });
-  } else {
-    throw new AppError(result.message, 400);
-  }
-});
 
 
 // Logout user
 const logout = asyncHandler(async (req, res) => {
-  const { refreshToken } = req.body;
+  // Get refresh token from cookies
+  const refreshToken = req.cookies?.refreshToken;
 
   if (refreshToken) {
     // Invalidate refresh token
@@ -313,8 +261,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
   user.passwordResetExpires = expiresAt;
   await user.save();
 
-  // Send reset email
-  await emailService.sendPasswordResetEmail(user.email, resetToken);
+  // Note: Email service removed - password reset functionality disabled
 
   // Log password reset request
   securityLogger.passwordResetRequest(user.email, req.ip, req.get('User-Agent'));
@@ -405,61 +352,13 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 });
 
 
-// Test SMS service (for development/testing purposes)
-const testSMS = asyncHandler(async (req, res) => {
-  const { phoneNumber } = req.body;
-
-  if (!phoneNumber) {
-    throw new AppError('Phone number is required', 400);
-  }
-
-  // Validate phone number format
-  if (!otpService.isValidPhoneNumber(phoneNumber)) {
-    throw new AppError('Invalid phone number format', 400);
-  }
-
-  // Check SMS service status
-  const smsStatus = otpService.getSMSServiceStatus();
-  if (!smsStatus.configured) {
-    throw new AppError('SMS service is not configured', 503);
-  }
-
-  // Send test SMS
-  const result = await otpService.testSMSService(phoneNumber);
-
-  res.status(200).json({
-    success: true,
-    message: 'Test SMS sent successfully',
-    data: {
-      messageId: result.messageId,
-      status: result.status,
-      to: result.to,
-      smsServiceStatus: smsStatus
-    }
-  });
-});
-
-// Get SMS service status
-const getSMSStatus = asyncHandler(async (req, res) => {
-  const smsStatus = otpService.getSMSServiceStatus();
-  
-  res.status(200).json({
-    success: true,
-    data: {
-      smsService: smsStatus
-    }
-  });
-});
 
 module.exports = {
   register: [validate(registerSchema), register],
   login: [validate(loginSchema), login],
-  verifyLoginOTP: [validate(verifyLoginOTPSchema), verifyLoginOTP],
   logout,
   forgotPassword: [validate(passwordResetRequestSchema), forgotPassword],
   resetPassword: [validate(passwordResetSchema), resetPassword],
   changePassword: [validate(changePasswordSchema), changePassword],
-  getCurrentUser,
-  testSMS,
-  getSMSStatus
+  getCurrentUser
 };

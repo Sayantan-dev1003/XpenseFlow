@@ -139,20 +139,6 @@ const authSchemas = {
     })
   },
   
-  sendOTP: {
-    body: Joi.object({
-      userId: commonSchemas.objectId.required(),
-      method: Joi.string().valid('email', 'sms').required()
-    })
-  },
-  
-  verifyOTP: {
-    body: Joi.object({
-      userId: commonSchemas.objectId.required(),
-      otp: Joi.string().length(6).required(),
-      method: Joi.string().valid('email', 'sms').required()
-    })
-  },
   
   forgotPassword: {
     body: Joi.object({

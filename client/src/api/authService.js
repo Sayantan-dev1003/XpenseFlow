@@ -51,15 +51,9 @@ export const authService = {
     return response.data;
   },
 
-  // Login user - Step 1: Check credentials
+  // Login user - Simple login with credentials
   login: async (credentials) => {
     const response = await api.post('/auth/login', credentials);
-    return response.data;
-  },
-
-  // Verify OTP for login - Step 2: Verify OTP and complete login
-  verifyLoginOTP: async (userId, otp, method) => {
-    const response = await api.post('/auth/verify-login-otp', { userId, otp, method });
     return response.data;
   },
 
@@ -88,10 +82,6 @@ export const authService = {
     return response.data;
   },
 
-  // Google OAuth
-  googleAuth: () => {
-    window.location.href = `${API_BASE_URL}/auth/google`;
-  }
 };
 
 // User service

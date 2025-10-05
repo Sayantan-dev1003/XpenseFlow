@@ -45,7 +45,7 @@ const HeroSection = () => {
           className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center"
         >
           {/* Left Content */}
-          <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0 mb-12 lg:mt-10">
+          <div className="text-center lg:text-left max-w-2xl mx-auto lg:mx-0 mt-12 lg:mt-10">
             <motion.h1
               variants={itemVariants}
               className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold font-poppins leading-tight mb-6"
@@ -173,21 +173,21 @@ const HeroSection = () => {
                 initial={{ opacity: 0, x: 50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.8, duration: 0.6 }}
-                className="absolute -top-4 -right-4 bg-white/15 backdrop-blur-md border border-white/20 rounded-lg p-4 w-48 shadow-xl"
+                className="absolute -top-20 -right-4 bg-white/15 backdrop-blur-md border border-white/20 rounded-lg p-4 w-48 shadow-xl"
               >
                 <div className="flex items-center space-x-2 mb-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                   <span className="text-xs font-medium text-white">Receipt Processed</span>
                 </div>
                 <p className="text-sm text-white font-medium">Starbucks Coffee - $4.50</p>
-                <p className="text-xs text-gray-300">AI extracted • 2 min ago</p>
+                <p className="text-xs text-gray-300">OCR extracted • 2 min ago</p>
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.0, duration: 0.6 }}
-                className="absolute -bottom-4 -left-4 bg-white/15 backdrop-blur-md border border-white/20 rounded-lg p-4 w-44 shadow-xl"
+                className="absolute -bottom-20 -left-4 bg-white/15 backdrop-blur-md border border-white/20 rounded-lg p-4 w-44 shadow-xl"
               >
                 <div className="flex items-center space-x-2 mb-2">
                   <div className="w-2 h-2 bg-[#6C63FF] rounded-full animate-pulse"></div>

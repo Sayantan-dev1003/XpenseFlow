@@ -122,26 +122,12 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  // Login function - Step 1: Check credentials
+  // Login function - Simple login with credentials
   const login = useCallback(async (credentials) => {
     try {
-      const response = await authService.login(credentials);
+      dispatch({ type: AUTH_ACTIONS.LOGIN_START });
       
-      if (response.success) {
-        return { success: true, data: response.data };
-      } else {
-        throw new Error(response.message);
-      }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
-      return { success: false, error: errorMessage };
-    }
-  }, []);
-
-  // Verify login OTP function - Step 2: Verify OTP and complete login
-  const verifyLoginOTP = useCallback(async (userId, otp, method) => {
-    try {
-      const response = await authService.verifyLoginOTP(userId, otp, method);
+      const response = await authService.login(credentials);
       
       if (response.success) {
         const { user } = response.data;
@@ -152,7 +138,6 @@ export const AuthProvider = ({ children }) => {
         console.log('AuthContext - User role:', user?.role);
         
         // Don't store tokens in localStorage - server handles via HTTP-only cookies
-        // storeTokens(accessToken, refreshToken);
         
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -165,7 +150,11 @@ export const AuthProvider = ({ children }) => {
         throw new Error(response.message);
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'OTP verification failed';
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      dispatch({
+        type: AUTH_ACTIONS.LOGIN_FAILURE,
+        payload: errorMessage
+      });
       toast.error(errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -221,14 +210,6 @@ export const AuthProvider = ({ children }) => {
 
 
 
-  // Social login functions
-  const googleLogin = useCallback(() => {
-    authService.googleAuth();
-  }, []);
-
-  const githubLogin = useCallback(() => {
-    authService.githubAuth();
-  }, []);
 
   // Clear error function
   const clearError = useCallback(() => {
@@ -245,14 +226,11 @@ export const AuthProvider = ({ children }) => {
   const value = useMemo(() => ({
     ...state,
     login,
-    verifyLoginOTP,
     register,
     logout,
-    googleLogin,
-    githubLogin,
     clearError,
     handleAuthFailure
-  }), [state, login, verifyLoginOTP, register, logout, googleLogin, githubLogin, clearError, handleAuthFailure]);
+  }), [state, login, register, logout, clearError, handleAuthFailure]);
 
   return (
     <AuthContext.Provider value={value}>

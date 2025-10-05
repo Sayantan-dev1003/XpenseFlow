@@ -12,9 +12,6 @@ const commonPatterns = {
   name: Joi.string().min(2).max(50).trim().pattern(/^[a-zA-Z\s]+$/).messages({
     'string.pattern.base': 'Name can only contain letters and spaces'
   }),
-  otp: Joi.string().length(6).pattern(/^\d+$/).messages({
-    'string.pattern.base': 'OTP must be 6 digits'
-  })
 };
 
 // Registration validation schema
@@ -58,17 +55,6 @@ const loginSchema = Joi.object({
   })
 });
 
-// OTP verification schema
-const otpVerificationSchema = Joi.object({
-  otp: commonPatterns.otp.required().messages({
-    'any.required': 'OTP is required',
-    'string.length': 'OTP must be exactly 6 digits'
-  }),
-  type: Joi.string().valid('email', 'phone').required().messages({
-    'any.required': 'OTP type is required',
-    'any.only': 'OTP type must be either email or phone'
-  })
-});
 
 // Password reset request schema
 const passwordResetRequestSchema = Joi.object({
@@ -141,41 +127,6 @@ const accountLinkingSchema = Joi.object({
   provider: Joi.string().valid('google', 'github').required()
 });
 
-// Resend OTP schema
-const resendOTPSchema = Joi.object({
-  type: Joi.string().valid('email', 'phone').required().messages({
-    'any.required': 'OTP type is required',
-    'any.only': 'OTP type must be either email or phone'
-  })
-});
-
-// Send login OTP schema
-const sendLoginOTPSchema = Joi.object({
-  userId: Joi.string().required().messages({
-    'any.required': 'User ID is required',
-    'string.empty': 'User ID cannot be empty'
-  }),
-  method: Joi.string().valid('email', 'phone').required().messages({
-    'any.required': 'OTP method is required',
-    'any.only': 'OTP method must be either email or phone'
-  })
-});
-
-// Verify login OTP schema
-const verifyLoginOTPSchema = Joi.object({
-  userId: Joi.string().required().messages({
-    'any.required': 'User ID is required',
-    'string.empty': 'User ID cannot be empty'
-  }),
-  otp: commonPatterns.otp.required().messages({
-    'any.required': 'OTP is required',
-    'string.length': 'OTP must be exactly 6 digits'
-  }),
-  method: Joi.string().valid('email', 'phone').required().messages({
-    'any.required': 'OTP method is required',
-    'any.only': 'OTP method must be either email or phone'
-  })
-});
 
 // Validation middleware factory
 const validate = (schema) => {
@@ -260,15 +211,11 @@ module.exports = {
   // Schemas
   registerSchema,
   loginSchema,
-  otpVerificationSchema,
   passwordResetRequestSchema,
   passwordResetSchema,
   changePasswordSchema,
   createUserSchema,
   accountLinkingSchema,
-  resendOTPSchema,
-  sendLoginOTPSchema,
-  verifyLoginOTPSchema,
   
   // Validation middleware
   validate,
