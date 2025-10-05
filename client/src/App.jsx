@@ -16,7 +16,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/ForgotPasswordPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
-import DashboardPage from './pages/DashboardPage';
 import NotFoundPage from './pages/NotFoundPage';
 
 // Expense Components
@@ -44,7 +43,7 @@ const AuthSuccessPage = () => {
           const user = data.data.user;
           
           // Determine redirect path based on user role
-          let redirectPath = '/dashboard';
+          let redirectPath = '/';
           switch (user.role) {
             case 'admin':
               redirectPath = '/admin-dashboard';
@@ -59,7 +58,7 @@ const AuthSuccessPage = () => {
               redirectPath = '/finance-dashboard';
               break;
             default:
-              redirectPath = '/dashboard';
+              redirectPath = '/';
           }
           
           window.location.href = redirectPath;
@@ -160,17 +159,6 @@ function App() {
               {/* OAuth Callback Routes */}
               <Route path="/auth/success" element={<AuthSuccessPage />} />
               <Route path="/auth/error" element={<AuthErrorPage />} />
-              
-
-              {/* Protected Routes */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute requireAuth={true}>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                } 
-              />
               
               {/* Role-based Dashboard Routes */}
               <Route 
