@@ -3,7 +3,7 @@ const slowDown = require('express-slow-down');
 
 // General rate limiter
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 1 * 60 * 1000, // 1 minutes
   max: 100, // limit each IP to 100 requests per windowMs
   message: {
     success: false,
@@ -22,7 +22,7 @@ const generalLimiter = rateLimit({
 
 // Strict rate limiter for auth endpoints
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 1 * 60 * 1000, // 1 minutes
   max: 5, // limit each IP to 5 requests per windowMs
   message: {
     success: false,
@@ -81,14 +81,14 @@ const registrationLimiter = rateLimit({
 
 // Slow down middleware for repeated requests
 const speedLimiter = slowDown({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 1 * 60 * 1000, // 1 minutes
   delayAfter: 50, // allow 50 requests per 15 minutes, then...
   delayMs: () => 500 // begin adding 500ms of delay per request above 50
 });
 
 // User-specific rate limiter (for authenticated users)
 const userRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 1 * 60 * 1000, // 1 minutes
   max: 200, // limit each user to 200 requests per windowMs
   keyGenerator: (req) => {
     return req.user ? req.user.id : rateLimit.ipKeyGenerator(req);

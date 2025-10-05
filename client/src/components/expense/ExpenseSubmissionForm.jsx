@@ -6,7 +6,7 @@ import ReceiptUpload from './ReceiptUpload';
 import expenseService from '../../api/expenseService';
 import companyService from '../../api/companyService';
 
-const ExpenseSubmissionForm = () => {
+const ExpenseSubmissionForm = ({ onClose, onSubmitSuccess }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [currencies, setCurrencies] = useState([]);
@@ -19,9 +19,9 @@ const ExpenseSubmissionForm = () => {
     amount: '',
     currency: { code: 'USD', name: 'US Dollar', symbol: '$' },
     category: '',
-    date: new Date().toISOString().split('T')[0],
-    tags: [],
-    notes: ''
+    expenseDateTime: new Date().toISOString().slice(0, 16), // Format: YYYY-MM-DDTHH:mm
+    receipt: null,
+    tags: []
   });
 
   const [errors, setErrors] = useState({});
@@ -90,7 +90,7 @@ const ExpenseSubmissionForm = () => {
   };
 
   const handleTagsChange = (e) => {
-    const tags = e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    const tags = e.target.value ? e.target.value.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
     setFormData(prev => ({
       ...prev,
       tags
@@ -101,7 +101,9 @@ const ExpenseSubmissionForm = () => {
     console.log('📋 Received OCR data:', ocrData);
     
     // Auto-fill form with OCR extracted data
-    const updates = {};
+    const updates = {
+      tags: [] // Initialize tags array in updates
+    };
     const filledFields = new Set();
     
     // Title - only if empty
@@ -260,7 +262,8 @@ const ExpenseSubmissionForm = () => {
       await expenseService.submitExpense(expenseData, selectedFile);
       
       toast.success('Expense submitted successfully!');
-      navigate('/employee-dashboard');
+      if (onSubmitSuccess) onSubmitSuccess();
+      if (onClose) onClose();
     } catch (error) {
       console.error('Failed to submit expense:', error);
       console.error('Error response:', error.response?.data);
@@ -299,25 +302,18 @@ const ExpenseSubmissionForm = () => {
   };
 
   const handleCancel = () => {
-    navigate('/employee-dashboard');
+    if (onClose) onClose();
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">Submit New Expense</h1>
-          <p className="text-gray-600">Fill in the details below to submit your expense for approval.</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
           {/* Receipt Upload */}
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-4">Receipt Upload</h3>
             <ReceiptUpload
               onReceiptData={handleReceiptData}
               onFileSelect={setSelectedFile}
+              onClose={onClose}
               disabled={loading}
             />
           </div>
@@ -458,41 +454,6 @@ const ExpenseSubmissionForm = () => {
                   placeholder="Enter expense description"
                 />
               </div>
-
-              <div>
-                <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-                  Tags
-                </label>
-                <input
-                  type="text"
-                  id="tags"
-                  name="tags"
-                  value={formData.tags.join(', ')}
-                  onChange={handleTagsChange}
-                  className={`mt-1 block w-full px-3 py-2 text-gray-500 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
-                    autoFilledFields.has('tags') ? 'border-green-400 bg-green-50' : 'border-gray-300'
-                  }`}
-                  placeholder="Enter tags separated by commas"
-                />
-                <p className="mt-1 text-sm text-gray-500">Separate multiple tags with commas</p>
-              </div>
-
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                  Notes
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  rows={1}
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  className={`mt-1 block w-full px-3 py-2 text-gray-500 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 transition-all duration-300 ${
-                    autoFilledFields.has('notes') ? 'border-green-400 bg-green-50' : 'border-gray-300'
-                  }`}
-                  placeholder="Additional notes"
-                />
-              </div>
             </div>
           </div>
 
@@ -524,10 +485,8 @@ const ExpenseSubmissionForm = () => {
                 </>
               )}
             </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        </div>
+    </form>
   );
 };
 

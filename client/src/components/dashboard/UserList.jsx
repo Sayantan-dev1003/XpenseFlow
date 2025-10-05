@@ -3,11 +3,33 @@ import { FiUsers, FiMail, FiShield, FiUser, FiMoreVertical, FiEdit, FiTrash2, Fi
 import userService from '../../api/userService.js';
 import { toast } from 'react-toastify';
 
-const UserList = () => {
+const UserList = ({ filter = 'All' }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showActions, setShowActions] = useState(null);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+
+  useEffect(() => {
+    // Filter users whenever the filter prop or users array changes
+    const filterUsers = () => {
+      if (filter === 'All') {
+        setFilteredUsers(users);
+        return;
+      }
+
+      const roleMap = {
+        'Manager': 'manager',
+        'Employee': 'employee',
+        'Finance': 'finance'
+      };
+
+      const filtered = users.filter(user => user.role === roleMap[filter]);
+      setFilteredUsers(filtered);
+    };
+
+    filterUsers();
+  }, [filter, users]);
 
   useEffect(() => {
     loadUsers();
@@ -96,9 +118,15 @@ const UserList = () => {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col h-[calc(100vh-285px)]">
+      {/* User Count */}
+      <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+        <p className="text-sm text-gray-600">
+          Showing {filteredUsers.length} {filter === 'All' ? 'total' : filter} users
+        </p>
+      </div>
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -113,15 +141,19 @@ const UserList = () => {
       </div>
 
       {/* Users List */}
-      <div className="divide-y divide-gray-200">
-        {users.length === 0 ? (
+      <div className="divide-y divide-gray-200 overflow-y-auto flex-1">
+        {filteredUsers.length === 0 ? (
           <div className="p-8 text-center">
             <FiUsers className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
-            <p className="text-gray-500">Start by creating your first team member.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {users.length === 0 ? 'No users found' : `No ${filter} users found`}
+            </h3>
+            <p className="text-gray-500">
+              {users.length === 0 ? 'Start by creating your first team member.' : `Try selecting a different filter option.`}
+            </p>
           </div>
         ) : (
-          users.map((user) => (
+          filteredUsers.map((user) => (
             <div key={user._id} className="p-6 hover:bg-gray-50 transition-colors">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">

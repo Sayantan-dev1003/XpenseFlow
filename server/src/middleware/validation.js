@@ -16,6 +16,7 @@ const commonPatterns = {
 
 // Registration validation schema
 const registerSchema = Joi.object({
+  // Admin details
   firstName: commonPatterns.name.required().messages({
     'any.required': 'First name is required',
     'string.empty': 'First name cannot be empty'
@@ -33,13 +34,42 @@ const registerSchema = Joi.object({
     'string.min': 'Password must be at least 6 characters long'
   }),
   phoneNumber: commonPatterns.phoneNumber.optional().allow(''),
+  dateOfBirth: Joi.date().max('now').required().messages({
+    'any.required': 'Date of birth is required',
+    'date.max': 'Date of birth cannot be in the future'
+  }),
+  gender: Joi.string().valid('male', 'female', 'other', 'prefer-not-to-say').required().messages({
+    'any.required': 'Gender is required',
+    'any.only': 'Please select a valid gender option'
+  }),
+  
+  // Company details
   companyName: Joi.string().min(2).max(100).trim().required().messages({
     'any.required': 'Company name is required',
     'string.empty': 'Company name cannot be empty'
   }),
-  country: Joi.string().min(2).max(100).trim().required().messages({
-    'any.required': 'Country is required',
-    'string.empty': 'Country cannot be empty'
+  address: Joi.object({
+    area: Joi.string().max(100).trim().optional().allow(''),
+    city: Joi.string().min(2).max(100).trim().required().messages({
+      'any.required': 'City is required',
+      'string.empty': 'City cannot be empty'
+    }),
+    state: Joi.string().min(2).max(100).trim().required().messages({
+      'any.required': 'State/Province is required',
+      'string.empty': 'State/Province cannot be empty'
+    }),
+    zipCode: Joi.string().min(2).max(20).trim().required().messages({
+      'any.required': 'Zip/Postal code is required',
+      'string.empty': 'Zip/Postal code cannot be empty'
+    }),
+    country: Joi.string().min(2).max(100).trim().required().messages({
+      'any.required': 'Country is required',
+      'string.empty': 'Country cannot be empty'
+    })
+  }).required(),
+  industry: Joi.string().valid('technology', 'healthcare', 'finance', 'retail', 'manufacturing', 'education', 'other').required().messages({
+    'any.required': 'Industry type is required',
+    'any.only': 'Please select a valid industry type'
   })
 });
 

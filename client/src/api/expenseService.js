@@ -37,13 +37,23 @@ class ExpenseService {
     // Add expense data
     Object.keys(expenseData).forEach(key => {
       if (expenseData[key] !== null && expenseData[key] !== undefined) {
-        if (typeof expenseData[key] === 'object') {
+        if (key === 'currency') {
+          // Handle currency object specially
+          formData.append('currency[code]', expenseData[key].code);
+          formData.append('currency[name]', expenseData[key].name);
+          formData.append('currency[symbol]', expenseData[key].symbol);
+        } else if (typeof expenseData[key] === 'object' && !Array.isArray(expenseData[key])) {
           formData.append(key, JSON.stringify(expenseData[key]));
         } else {
           formData.append(key, expenseData[key]);
         }
       }
     });
+
+    // Log formData for debugging
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}: ${value}`);
+    }
 
     // Add receipt file if provided
     if (receiptFile) {

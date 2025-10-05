@@ -1,37 +1,45 @@
 import React, { useState, useRef } from 'react';
-import { FiUpload, FiX, FiEye, FiCheck, FiLoader } from 'react-icons/fi';
+import { FiUpload, FiX, FiEye, FiCheck, FiLoader, FiSave, FiCalendar, FiDollarSign } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 import ocrService from '../../services/ocrService';
+import expenseService from '../../api/expenseService';
 
-const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
+const ReceiptUpload = ({ onClose, disabled = false }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [extractedData, setExtractedData] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [currentStep, setCurrentStep] = useState('upload'); // 'upload' or 'edit'
   const fileInputRef = useRef(null);
+  
+  const [editedData, setEditedData] = useState({
+    title: '',
+    amount: '',
+    currency: {
+      code: 'USD',
+      name: 'US Dollar',
+      symbol: '$'
+    },
+    category: '',
+    expenseDateTime: new Date().toISOString().slice(0, 16),
+    description: ''
+  });
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
     try {
-      // Validate file
       ocrService.validateImageFile(file);
-      
       setSelectedFile(file);
       setExtractedData(null);
-      
-      // Create preview URL
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
-      
-      // Notify parent component
-      if (onFileSelect) {
-        onFileSelect(file);
-      }
     } catch (error) {
-      alert(error.message);
+      toast.error(error.message);
       resetUpload();
     }
   };
@@ -50,28 +58,92 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
 
       setExtractedData(receiptData);
       
-      // Notify parent component with extracted data
-      if (onReceiptData) {
-        onReceiptData(receiptData);
-      }
+      // Pre-fill the edited data with extracted values
+      setEditedData({
+        title: receiptData.extractedVendor ? `Expense from ${receiptData.extractedVendor}` : '',
+        amount: receiptData.extractedAmount?.toString() || '',
+        currency: {
+          code: receiptData.extractedCurrency || 'USD',
+          name: receiptData.extractedCurrency === 'INR' ? 'Indian Rupee' : 'US Dollar',
+          symbol: receiptData.extractedCurrency === 'INR' ? '₹' : '$'
+        },
+        category: receiptData.extractedCategory || '',
+        expenseDateTime: receiptData.extractedDate ? new Date(receiptData.extractedDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+        description: receiptData.extractedDescription || ''
+      });
+      
+      // Move to edit step
+      setCurrentStep('edit');
+      toast.success('Receipt data extracted successfully!');
     } catch (error) {
       console.error('OCR processing failed:', error);
-      
-      // Show more user-friendly error messages
-      let errorMessage = 'Failed to process receipt. You can still submit manually.';
-      
-      if (error.message.includes('security') || error.message.includes('CSP')) {
-        errorMessage = 'Browser security settings prevented automatic processing. Please enter the receipt details manually.';
-      } else if (error.message.includes('worker')) {
-        errorMessage = 'OCR service is temporarily unavailable. Please enter the receipt details manually.';
-      } else if (error.message.includes('No text')) {
-        errorMessage = 'Could not read text from this image. Please ensure the image is clear and try again, or enter details manually.';
-      }
-      
-      alert(errorMessage);
+      toast.error('Failed to process receipt. You can still enter details manually.');
     } finally {
       setIsProcessing(false);
       setOcrProgress(0);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      // Format the data according to server expectations
+      const formattedData = {
+        title: editedData.title,
+        amount: parseFloat(editedData.amount),
+        currency: editedData.currency,
+        category: editedData.category,
+        description: editedData.description || '',
+        date: editedData.expenseDateTime,
+        submissionDateTime: new Date().toISOString(),
+        notes: editedData.description || ''
+      };
+
+      // Log the data being sent for debugging
+      console.log('Submitting expense:', formattedData);
+      console.log('Receipt file:', selectedFile);
+
+      await expenseService.submitExpense(formattedData, selectedFile);
+
+      toast.success('Expense submitted successfully!');
+      onClose();
+    } catch (error) {
+      console.error('Failed to submit expense:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to submit expense. Please try again.';
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'currency') {
+      // Handle currency code change
+      const currencyInfo = {
+        USD: { name: 'US Dollar', symbol: '$' },
+        INR: { name: 'Indian Rupee', symbol: '₹' },
+        EUR: { name: 'Euro', symbol: '€' },
+        GBP: { name: 'British Pound', symbol: '£' }
+      };
+
+      const code = value.toUpperCase();
+      setEditedData(prev => ({
+        ...prev,
+        currency: {
+          code,
+          name: currencyInfo[code]?.name || code,
+          symbol: currencyInfo[code]?.symbol || code
+        }
+      }));
+    } else {
+      setEditedData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
   };
 
@@ -82,12 +154,12 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
     setShowPreview(false);
     setIsProcessing(false);
     setOcrProgress(0);
+    setCurrentStep('upload');
     
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
     
-    // Clean up preview URL
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
     }
@@ -101,9 +173,145 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  if (currentStep === 'edit') {
+    return (
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="bg-white rounded-lg">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Review Extracted Data</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Title *</label>
+              <input
+                type="text"
+                name="title"
+                value={editedData.title}
+                onChange={handleInputChange}
+                className="mt-1 block w-full text-gray-500 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Amount *</label>
+              <div className="mt-1 relative">
+                <input
+                  type="number"
+                  name="amount"
+                  value={editedData.amount}
+                  onChange={handleInputChange}
+                  className="block w-full text-gray-500 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                  step="0.01"
+                  min="0"
+                />
+                <FiDollarSign className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Currency *</label>
+              <input
+                type="text"
+                name="currency"
+                value={editedData.currency.code}
+                onChange={handleInputChange}
+                className="mt-1 block w-full text-gray-500 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Category *</label>
+              <input
+                type="text"
+                name="category"
+                value={editedData.category}
+                onChange={handleInputChange}
+                className="mt-1 block w-full text-gray-500 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Date and Time *</label>
+              <div className="mt-1 relative">
+                <input
+                  type="datetime-local"
+                  name="expenseDateTime"
+                  value={editedData.expenseDateTime}
+                  onChange={handleInputChange}
+                  className="block w-full text-gray-500 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  required
+                />
+                <FiCalendar className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <textarea
+                name="description"
+                value={editedData.description}
+                onChange={handleInputChange}
+                rows={3}
+                className="mt-1 block w-full text-gray-500 border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Preview Image */}
+          {previewUrl && (
+            <div className="mt-6 border rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Uploaded Receipt</h4>
+              <img
+                src={previewUrl}
+                alt="Receipt preview"
+                className="max-w-full h-auto rounded-lg"
+              />
+            </div>
+          )}
+
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={resetUpload}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {loading ? (
+                <>
+                  <FiLoader className="animate-spin inline mr-2 h-4 w-4" />
+                  Submitting...
+                </>
+              ) : (
+                <>
+                  <FiSave className="inline mr-2 h-4 w-4" />
+                  Submit Expense
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </form>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      {/* Upload Area */}
       <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
         <input
           ref={fileInputRef}
@@ -156,9 +364,9 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
               <div className="flex items-center space-x-2">
                 <button
                   type="button"
-                  onClick={() => setShowPreview(true)}
+                  onClick={() => setShowPreview(!showPreview)}
                   className="p-2 text-gray-400 hover:text-gray-600"
-                  title="Preview"
+                  title="Toggle Preview"
                 >
                   <FiEye className="w-4 h-4" />
                 </button>
@@ -206,93 +414,18 @@ const ReceiptUpload = ({ onReceiptData, onFileSelect, disabled = false }) => {
                 )}
               </div>
             )}
-
-            {/* Extracted Data */}
-            {extractedData && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center mb-3">
-                  <FiCheck className="w-5 h-5 text-green-600 mr-2" />
-                  <h4 className="text-sm font-medium text-green-800">
-                    Data Extracted Successfully
-                  </h4>
-                  <span className="ml-auto text-xs text-green-600">
-                    Confidence: {extractedData.confidence}%
-                  </span>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">Amount:</span>
-                    <p className="text-gray-900">
-                      {extractedData.extractedAmount 
-                        ? `${extractedData.extractedAmount.toFixed(2)}`
-                        : 'Not found'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Date:</span>
-                    <p className="text-gray-900">
-                      {extractedData.extractedDate 
-                        ? new Date(extractedData.extractedDate).toLocaleDateString()
-                        : 'Not found'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Vendor:</span>
-                    <p className="text-gray-900 truncate">
-                      {extractedData.extractedVendor || 'Not found'}
-                    </p>
-                  </div>
-                  {extractedData.extractedCategory && (
-                    <div>
-                      <span className="font-medium text-gray-700">Category:</span>
-                      <p className="text-gray-900">
-                        {extractedData.extractedCategory}
-                      </p>
-                    </div>
-                  )}
-                  {extractedData.extractedDescription && (
-                    <div className="md:col-span-2 lg:col-span-3">
-                      <span className="font-medium text-gray-700">Description:</span>
-                      <p className="text-gray-900 text-xs">
-                        {extractedData.extractedDescription}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                
-                <p className="text-xs text-green-600 mt-2">
-                  Review and edit the extracted data in the form below
-                </p>
-              </div>
-            )}
           </div>
         )}
       </div>
 
-      {/* Preview Modal */}
+      {/* Preview Image */}
       {showPreview && previewUrl && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl max-h-full overflow-auto">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-medium">Receipt Preview</h3>
-              <button
-                onClick={() => setShowPreview(false)}
-                className="p-2 hover:bg-gray-100 rounded-full"
-              >
-                <FiX className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-4">
-              <img
-                src={previewUrl}
-                alt="Receipt preview"
-                className="max-w-full h-auto"
-              />
-            </div>
-          </div>
+        <div className="mt-4">
+          <img
+            src={previewUrl}
+            alt="Receipt preview"
+            className="max-w-full h-auto rounded-lg"
+          />
         </div>
       )}
     </div>

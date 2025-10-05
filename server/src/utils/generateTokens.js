@@ -288,9 +288,20 @@ const generateSecureToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-// Generate secure random token for email verification
-const generateEmailVerificationToken = () => {
-  return crypto.randomBytes(32).toString('hex');
+// Generate a unique employee ID (e.g., ADM-<company>-<random/shortid>)
+const generateEmployeeId = (companyName) => {
+  const prefix = 'ADM';
+  const company = companyName.replace(/\s+/g, '').substring(0, 5).toUpperCase();
+  const random = Math.floor(1000 + Math.random() * 9000); // 4-digit random
+  return `${prefix}-${company}-${random}`;
+};
+
+// Generate a unique company ID (e.g., CMP-<company>-<timestamp>)
+const generateCompanyId = (companyName) => {
+  const prefix = 'CMP';
+  const company = companyName.replace(/\s+/g, '').substring(0, 5).toUpperCase();
+  const timestamp = Date.now().toString().slice(-6); // last 6 digits of timestamp
+  return `${prefix}-${company}-${timestamp}`;
 };
 
 module.exports = {
@@ -304,5 +315,6 @@ module.exports = {
   refreshToken,
   authorize,
   generateSecureToken,
-  generateEmailVerificationToken
+  generateEmployeeId,
+  generateCompanyId
 };

@@ -46,25 +46,67 @@ class ExpenseController {
       console.log('📥 Received request body:', req.body);
       console.log('📥 Request file:', req.file);
       
-      // Extract data from request body (already parsed by middleware)
+      // Parse currency from form data
+      let currency;
+      try {
+        if (req.body['currency[code]']) {
+          // Handle individually submitted currency fields
+          currency = {
+            code: req.body['currency[code]'],
+            name: req.body['currency[name]'],
+            symbol: req.body['currency[symbol]']
+          };
+        } else {
+          // Try parsing currency as JSON string
+          currency = typeof req.body.currency === 'string' 
+            ? JSON.parse(req.body.currency)
+            : req.body.currency;
+        }
+      } catch (err) {
+        console.error('Error parsing currency:', err);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid currency format'
+        });
+      }
+
+      // Extract and parse other data from request body
       const {
         title,
         description,
         amount,
+        category,
+        date,
+        notes,
+        submissionDateTime
+      } = req.body;
+
+      // Validate required fields
+      if (!title || !amount || !currency || !category || !date) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required fields'
+        });
+      }
+
+      // Parse amount to number if it's a string
+      const parsedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+
+      if (isNaN(parsedAmount)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid amount'
+        });
+      }
+
+      console.log('📋 Processed data:', {
+        title,
+        amount: parsedAmount,
         currency,
         category,
         date,
-        tags,
-        notes
-      } = req.body;
-
-      console.log('📋 Final data types:', {
-        title: typeof title,
-        amount: typeof amount,
-        currency: typeof currency,
-        category: typeof category,
-        date: typeof date,
-        tags: typeof tags
+        description: description || '',
+        notes: notes || ''
       });
 
       const userId = req.user.id;

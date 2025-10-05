@@ -42,9 +42,13 @@ const expenseSchema = new mongoose.Schema({
     required: [true, 'Category is required'],
     trim: true
   },
-  date: {
+  expenseDateTime: {
     type: Date,
-    required: [true, 'Expense date is required'],
+    required: [true, 'Expense date and time is required']
+  },
+  submissionDateTime: {
+    type: Date,
+    required: true,
     default: Date.now
   },
   receipt: {
@@ -115,29 +119,7 @@ const expenseSchema = new mongoose.Schema({
       type: Number,
       required: true
     }
-  }],
-  currentApprovalLevel: {
-    type: Number,
-    default: 0
-  },
-  workflowId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'ApprovalWorkflow'
-  },
-  tags: [{
-    type: String,
-    trim: true
-  }],
-  isReimbursed: {
-    type: Boolean,
-    default: false
-  },
-  reimbursementDate: Date,
-  notes: {
-    type: String,
-    trim: true,
-    maxlength: [1000, 'Notes cannot exceed 1000 characters']
-  }
+  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },

@@ -2,28 +2,45 @@ const User = require('../models/User.model');
 const Token = require('../models/Token.model');
 const Company = require('../models/Company.model');
 const mongoose = require('mongoose');
+const axios = require('axios');
 const config = require('../config');
-const { 
-  generateTokens, 
-  setSecureCookies, 
+const {
+  generateTokens,
+  setSecureCookies,
   clearSecureCookies,
-  generateSecureToken 
+  generateSecureToken,
+  generateEmployeeId,
+  generateCompanyId
 } = require('../utils/generateTokens');
 const currencyService = require('../services/currency.service');
 const { securityLogger } = require('../utils/logger');
 const { asyncHandler, AppError } = require('../middleware/error.middleware');
-const { 
-  registerSchema, 
-  loginSchema, 
+const {
+  registerSchema,
+  loginSchema,
   passwordResetRequestSchema,
   passwordResetSchema,
   changePasswordSchema,
-  validate 
+  validate
 } = require('../middleware/validation');
 
 // Register user
 const register = asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, password, phoneNumber, companyName, country } = req.body;
+  const {
+    // Admin details
+    firstName,
+    lastName,
+    email,
+    password,
+    phoneNumber,
+    dateOfBirth,
+    gender,
+
+    // Company details
+    companyName,
+    address,
+    industry
+  } = req.body;
 
   // Check if user already exists
   const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -31,20 +48,49 @@ const register = asyncHandler(async (req, res) => {
     throw new AppError('User already exists with this email', 400);
   }
 
-  // Get currency for the country (if provided)
-  let currency = null;
-  if (country) {
-    currency = await currencyService.getCurrencyByCountry(country);
-    if (!currency) {
-      // Fallback to USD if currency detection fails
-      currency = { code: 'USD', name: 'US Dollar', symbol: '$' };
+  // Generate unique IDs
+  const employeeId = generateEmployeeId(companyName);
+  const companyId = generateCompanyId(companyName);
+
+  // Fetch currency data for the country
+  let baseCurrency;
+  try {
+    const response = await axios.get('https://restcountries.com/v3.1/all?fields=name,currencies');
+    const countryData = response.data.find(country =>
+      country.name.common === address.country ||
+      country.name.official === address.country ||
+      Object.values(country.name.nativeName || {}).some(
+        name => name.common === address.country || name.official === address.country
+      )
+    );
+
+    if (countryData && countryData.currencies) {
+      const currencyCode = Object.keys(countryData.currencies)[0];
+      const currency = countryData.currencies[currencyCode];
+      baseCurrency = {
+        code: currencyCode,
+        name: currency.name,
+        symbol: currency.symbol
+      };
+    } else {
+      // Default to USD if currency not found
+      baseCurrency = {
+        code: 'USD',
+        name: 'US Dollar',
+        symbol: '$'
+      };
     }
-  } else {
-    // Default to USD if no country provided
-    currency = { code: 'USD', name: 'US Dollar', symbol: '$' };
+  } catch (error) {
+    console.error('Error fetching currency data:', error);
+    // Default to USD in case of API failure
+    baseCurrency = {
+      code: 'USD',
+      name: 'US Dollar',
+      symbol: '$'
+    };
   }
 
-  // Use a transaction to ensure data consistency
+  // Use transaction to ensure data consistency
   const session = await User.startSession();
   let company = null;
   let user = null;
@@ -59,8 +105,11 @@ const register = asyncHandler(async (req, res) => {
           email: email.toLowerCase(),
           password,
           phoneNumber,
+          dateOfBirth,
+          gender,
           authProvider: 'local',
-          role: 'admin'
+          role: 'admin',
+          employeeId // <-- Save generated employeeId
           // company field is intentionally omitted initially
         }, { session });
 
@@ -69,9 +118,12 @@ const register = asyncHandler(async (req, res) => {
         // Step 2: Create company with the user ID as createdBy
         const newCompany = new Company({
           name: companyName,
-          country: country || 'United States',
-          baseCurrency: currency,
+          country: address.country || 'United States',
+          baseCurrency: baseCurrency,
+          address,
+          industry,
           createdBy: newUser._id, // Now we have the actual user ID
+          companyId, // <-- Save generated companyId
           settings: {
             expenseCategories: [],
             expenseLimits: {
@@ -139,10 +191,12 @@ const register = asyncHandler(async (req, res) => {
         email: user.email,
         profilePicture: user.profilePicture,
         role: user.role,
+        employeeId: user.employeeId, // <-- Return employeeId
         company: company ? {
           id: company._id,
           name: company.name,
-          baseCurrency: company.baseCurrency
+          baseCurrency: company.baseCurrency,
+          companyId: company.companyId // <-- Return companyId
         } : null
       },
       accessToken,

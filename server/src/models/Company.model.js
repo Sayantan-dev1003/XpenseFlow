@@ -33,7 +33,7 @@ const companySchema = new mongoose.Schema({
     }
   },
   address: {
-    street: String,
+    area: String,
     city: String,
     state: String,
     zipCode: String,
@@ -42,21 +42,6 @@ const companySchema = new mongoose.Schema({
   industry: {
     type: String,
     trim: true
-  },
-  website: {
-    type: String,
-    trim: true,
-    validate: {
-      validator: function(url) {
-        if (!url) return true; // Optional field
-        return /^https?:\/\/.+/.test(url);
-      },
-      message: 'Please enter a valid website URL'
-    }
-  },
-  logo: {
-    type: String,
-    default: ''
   },
   settings: {
     expenseCategories: [{
@@ -92,14 +77,14 @@ const companySchema = new mongoose.Schema({
       }
     }
   },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  companyId: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true,

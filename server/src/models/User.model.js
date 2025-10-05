@@ -41,15 +41,6 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number']
   },
-  profilePicture: {
-    type: String,
-    default: ''
-  },
-  authProvider: {
-    type: String,
-    enum: ['local'],
-    default: 'local'
-  },
   passwordResetToken: String,
   passwordResetExpires: Date,
   lastLogin: {
@@ -93,17 +84,6 @@ const userSchema = new mongoose.Schema({
   employeeId: {
     type: String,
     trim: true
-  },
-  hireDate: {
-    type: Date,
-    default: Date.now
-  },
-  preferences: {
-    theme: {
-      type: String,
-      enum: ['light', 'dark', 'auto'],
-      default: 'auto'
-    }
   }
 }, {
   timestamps: true,
