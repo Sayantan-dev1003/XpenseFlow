@@ -145,6 +145,10 @@ const createUserSchema = Joi.object({
   }),
   manager: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional().allow('').messages({
     'string.pattern.base': 'Invalid manager ID format'
+  }),
+  employeeId: Joi.string().min(5).max(50).trim().required().messages({
+    'any.required': 'Employee ID is required',
+    'string.empty': 'Employee ID cannot be empty'
   })
 });
 

@@ -73,14 +73,6 @@ const userSchema = new mongoose.Schema({
     ref: 'User',
     default: null
   },
-  department: {
-    type: String,
-    trim: true
-  },
-  jobTitle: {
-    type: String,
-    trim: true
-  },
   employeeId: {
     type: String,
     trim: true

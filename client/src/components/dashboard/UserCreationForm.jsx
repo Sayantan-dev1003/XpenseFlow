@@ -13,7 +13,8 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
     phoneNumber: '',
     password: '',
     role: '',
-    manager: ''
+    manager: '',
+    employeeId: ''
   });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +49,32 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
         [name]: ''
       }));
     }
+  };
+
+  const generateEmployeeId = () => {
+    const rolePrefix = {
+      'employee': 'EMP',
+      'manager': 'MGR',
+      'finance': 'FIN'
+    };
+    
+    const prefix = rolePrefix[formData.role] || 'EMP';
+    const randomString = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const timestamp = Date.now().toString().substring(-4);
+    
+    return `${prefix}-${randomString}-${timestamp}`;
+  };
+
+  const handleRoleChange = (e) => {
+    const { value } = e.target;
+    const newEmployeeId = value ? generateEmployeeId() : '';
+    
+    setFormData(prev => ({
+      ...prev,
+      role: value,
+      employeeId: newEmployeeId,
+      manager: value !== 'employee' ? '' : prev.manager // Clear manager if not employee
+    }));
   };
 
   const validateForm = () => {
@@ -124,7 +151,8 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
           phoneNumber: '',
           password: '',
           role: '',
-          manager: ''
+          manager: '',
+          employeeId: ''
         });
       } else {
         toast.error(result.message || 'Failed to create user');
@@ -139,7 +167,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
 
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -237,6 +265,27 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
             />
           </div>
 
+          {/* Employee ID (Auto-generated) */}
+          {formData.employeeId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Employee ID
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formData.employeeId}
+                  readOnly
+                  className="w-full px-4 py-3 text-gray-500 border border-gray-200 rounded-xl bg-gray-100 cursor-not-allowed"
+                />
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <FiShield className="h-5 w-5 text-gray-400" />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Auto-generated based on role</p>
+            </div>
+          )}
+
           {/* Role */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -246,7 +295,7 @@ const UserCreationForm = ({ onClose, onUserCreated }) => {
               <select
                 name="role"
                 value={formData.role}
-                onChange={handleChange}
+                onChange={handleRoleChange}
                 className="w-full px-4 py-3 text-gray-500 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent appearance-none"
                 required
               >

@@ -172,11 +172,11 @@ class WorkflowController {
         _id: workflowId,
         company: companyId
       })
-        .populate('rules.percentage.eligibleApprovers', 'firstName lastName email role department')
-        .populate('rules.specificApprover.approver', 'firstName lastName email role department')
-        .populate('rules.hybrid.percentage.eligibleApprovers', 'firstName lastName email role department')
-        .populate('rules.hybrid.specificApprover.approver', 'firstName lastName email role department')
-        .populate('levels.approvers', 'firstName lastName email role department')
+        .populate('rules.percentage.eligibleApprovers', 'firstName lastName email role')
+        .populate('rules.specificApprover.approver', 'firstName lastName email role')
+        .populate('rules.hybrid.percentage.eligibleApprovers', 'firstName lastName email role')
+        .populate('rules.hybrid.specificApprover.approver', 'firstName lastName email role')
+        .populate('levels.approvers', 'firstName lastName email role')
         .populate('createdBy', 'firstName lastName email');
 
       if (!workflow) {
@@ -418,7 +418,7 @@ class WorkflowController {
         company: companyId,
         role: { $in: ['admin', 'manager'] },
         isActive: true
-      }).select('firstName lastName email role department');
+      }).select('firstName lastName email role');
 
       res.json({
         success: true,
@@ -461,7 +461,7 @@ class WorkflowController {
       // Create a mock user for testing
       const mockUser = {
         role: sampleExpense.userRole || 'employee',
-        department: sampleExpense.userDepartment || 'General'
+
       };
 
       // Create a mock expense

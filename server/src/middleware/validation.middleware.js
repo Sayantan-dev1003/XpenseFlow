@@ -162,9 +162,7 @@ const userSchemas = {
     body: Joi.object({
       firstName: Joi.string().optional().trim().max(50),
       lastName: Joi.string().optional().trim().max(50),
-      phoneNumber: commonSchemas.phoneNumber.optional(),
-      department: Joi.string().optional().trim().max(100),
-      jobTitle: Joi.string().optional().trim().max(100)
+      phoneNumber: commonSchemas.phoneNumber.optional()
     })
   },
   

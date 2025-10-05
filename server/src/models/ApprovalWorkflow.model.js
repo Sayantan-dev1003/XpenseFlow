@@ -36,10 +36,6 @@ const approvalWorkflowSchema = new mongoose.Schema({
       type: String,
       trim: true
     }],
-    departments: [{
-      type: String,
-      trim: true
-    }],
     roles: [{
       type: String,
       enum: ['admin', 'manager', 'employee']
@@ -199,11 +195,7 @@ approvalWorkflowSchema.methods.appliesTo = function(expense, user) {
     return false;
   }
   
-  // Check departments
-  if (this.conditions.departments.length > 0 && 
-      !this.conditions.departments.includes(user.department)) {
-    return false;
-  }
+
   
   // Check roles
   if (this.conditions.roles.length > 0 && 

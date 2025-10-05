@@ -10,8 +10,8 @@ const crypto = require('crypto');
 
 // Create new user (Admin only)
 const createUser = asyncHandler(async (req, res) => {
-  const { firstName, lastName, email, phoneNumber, password, role, manager } = req.body;
-  const adminId = req.user._id;
+  const { firstName, lastName, email, phoneNumber, password, role, manager, employeeId } = req.body;
+  const userId = req.user._id;
   const companyId = req.user.company;
 
   // Only admins can create users
@@ -47,6 +47,7 @@ const createUser = asyncHandler(async (req, res) => {
     company: companyId,
     role,
     manager: role === 'employee' ? manager : null,
+    employeeId,
     authProvider: 'local',
     hasChangedDefaultPassword: false // Admin sets the password, so it's not a default
   });
@@ -64,7 +65,8 @@ const createUser = asyncHandler(async (req, res) => {
         email: user.email,
         phoneNumber: user.phoneNumber,
         role: user.role,
-        manager: user.manager
+        manager: user.manager,
+        employeeId: user.employeeId
       },
       credentials: {
         email: user.email,
