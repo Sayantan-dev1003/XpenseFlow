@@ -51,18 +51,43 @@ const expenseSchema = new mongoose.Schema({
     required: true,
     default: Date.now
   },
+  // Direct binary storage of receipt image
+  receiptImage: {
+    data: Buffer,
+    contentType: String
+  },
   receipt: {
+    // Original receipt file details
     filename: String,
     originalName: String,
     mimetype: String,
     size: Number,
     url: String,
+    
+    // Binary storage of receipt image
+    image: {
+      data: Buffer,
+      contentType: String
+    },
+    
+    // OCR extracted data
     ocrData: {
       extractedText: String,
       extractedAmount: Number,
       extractedDate: Date,
       extractedVendor: String,
-      confidence: Number
+      extractedLocation: {
+        country: String,
+        city: String,
+        address: String
+      },
+      confidence: {
+        overall: Number,
+        amount: Number,
+        date: Number,
+        vendor: Number,
+        location: Number
+      }
     }
   },
   submittedBy: {
@@ -160,12 +185,43 @@ expenseSchema.index({ createdAt: -1 });
 expenseSchema.index({ company: 1, status: 1, date: -1 });
 expenseSchema.index({ submittedBy: 1, status: 1, date: -1 });
 
-// Pre-save middleware to calculate converted amount
-expenseSchema.pre('save', function(next) {
-  if (this.isModified('amount') || this.isModified('exchangeRate')) {
-    this.convertedAmount = this.amount * this.exchangeRate;
+// Pre-save middleware for receipt processing and currency conversion
+expenseSchema.pre('save', async function(next) {
+  try {
+    // Update convertedAmount if amount or exchangeRate changes
+    if (this.isModified('amount') || this.isModified('exchangeRate')) {
+      this.convertedAmount = this.amount * this.exchangeRate;
+    }
+
+    // Process OCR data if receipt image is modified
+    if (this.isModified('receipt.image.data')) {
+      // Set submissionDateTime to current time when receipt is uploaded
+      this.submissionDateTime = new Date();
+      
+      // If OCR data exists, try to update expense details
+      if (this.receipt.ocrData) {
+        // Update amount if not manually set
+        if (!this.isModified('amount') && this.receipt.ocrData.extractedAmount) {
+          this.amount = this.receipt.ocrData.extractedAmount;
+        }
+
+        // Update expenseDateTime if not manually set
+        if (!this.isModified('expenseDateTime') && this.receipt.ocrData.extractedDate) {
+          this.expenseDateTime = this.receipt.ocrData.extractedDate;
+        }
+
+        // If location is detected, try to set currency
+        if (this.receipt.ocrData.extractedLocation && this.receipt.ocrData.extractedLocation.country) {
+          // Note: Actual currency fetching will be handled by the controller
+          // using the Rest Countries API
+        }
+      }
+    }
+
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 });
 
 // Instance method to add approval with dual approval logic
@@ -275,6 +331,51 @@ expenseSchema.statics.getPendingForApprover = function(approverId, companyId) {
     .populate('submittedBy', 'firstName lastName email role manager')
     .populate('company', 'name baseCurrency')
     .sort({ createdAt: -1 });
+};
+
+// Helper method to process OCR data
+expenseSchema.methods.processOCRData = async function() {
+  if (!this.receipt.ocrData) return;
+
+  // Validate and clean extracted amount
+  if (this.receipt.ocrData.extractedAmount) {
+    const amount = parseFloat(this.receipt.ocrData.extractedAmount);
+    if (!isNaN(amount) && amount > 0) {
+      this.amount = amount;
+    }
+  }
+
+  // Validate and clean extracted date
+  if (this.receipt.ocrData.extractedDate) {
+    const date = new Date(this.receipt.ocrData.extractedDate);
+    if (date.toString() !== 'Invalid Date') {
+      this.expenseDateTime = date;
+    }
+  }
+
+  // Update vendor information if available
+  if (this.receipt.ocrData.extractedVendor) {
+    if (!this.title) {
+      this.title = `Expense at ${this.receipt.ocrData.extractedVendor}`;
+    }
+    if (!this.description) {
+      this.description = `Purchase from ${this.receipt.ocrData.extractedVendor}`;
+    }
+  }
+};
+
+// Helper method to update currency and exchange rate
+expenseSchema.methods.updateCurrencyAndRate = async function(currencyDetails, exchangeRate) {
+  // Update currency details
+  this.currency = {
+    code: currencyDetails.code,
+    name: currencyDetails.name,
+    symbol: currencyDetails.symbol
+  };
+
+  // Update exchange rate and recalculate converted amount
+  this.exchangeRate = exchangeRate;
+  this.convertedAmount = this.amount * this.exchangeRate;
 };
 
 module.exports = mongoose.model('Expense', expenseSchema);

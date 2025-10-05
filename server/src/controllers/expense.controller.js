@@ -3,41 +3,111 @@ const Company = require('../models/Company.model');
 const User = require('../models/User.model');
 const ApprovalWorkflow = require('../models/ApprovalWorkflow.model');
 const currencyService = require('../services/currency.service');
+const receiptService = require('../services/receipt.service');
 const notificationService = require('../services/notification.service');
 const winston = require('winston');
 const multer = require('multer');
 const path = require('path');
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/receipts/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'receipt-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  },
-  fileFilter: function (req, file, cb) {
-    const allowedTypes = /jpeg|jpg|png|pdf/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error('Only JPEG, PNG, and PDF files are allowed'));
+// Configure multer for memory storage (for OCR processing)
+const storage = multer.memoryStorage();
+const uploadMiddleware = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+        // Allow only images
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'), false);
+        }
     }
-  }
 });
 
 class ExpenseController {
+  /**
+   * Process and store a receipt image with OCR
+   */
+  async uploadReceipt(req, res) {
+        try {
+            return res.status(501).json({
+                message: 'Server-side OCR is disabled. Please perform OCR on the client using Tesseract.js and submit structured expense data via the standard submission endpoint.'
+            });
+        } catch (error) {
+            winston.error('Error processing receipt:', error);
+            res.status(500).json({ 
+                message: 'Failed to process receipt',
+                error: error.message 
+            });
+        }
+    }
+
+  /**
+   * Update expense details after receipt processing
+   */
+  async updateExpenseWithReceiptData(req, res) {
+    try {
+      const { expenseId } = req.params;
+      const updates = req.body;
+      const expense = await Expense.findById(expenseId);
+      if (!expense) {
+        return res.status(404).json({ message: 'Expense not found' });
+      }
+      // Verify user has permission to update this expense
+      if (expense.submittedBy.toString() !== req.user._id.toString() &&
+        !['admin', 'finance'].includes(req.user.role)) {
+        return res.status(403).json({ message: 'Not authorized to update this expense' });
+      }
+      // Update fields from manual input
+      const allowedUpdates = ['amount', 'title', 'description', 'category', 'expenseDateTime'];
+      for (const field of allowedUpdates) {
+        if (updates[field] !== undefined) {
+          if (field === 'expenseDateTime') {
+            expense[field] = new Date(updates[field]);
+          } else {
+            expense[field] = updates[field];
+          }
+        }
+      }
+      // If amount changed, recalculate converted amount
+      if (updates.amount !== undefined) {
+        expense.convertedAmount = expense.amount * expense.exchangeRate;
+      }
+      // If currency changed, update exchange rate and converted amount
+      if (updates.currency && updates.currency.code !== expense.currency.code) {
+        const company = await Company.findById(expense.company);
+        const exchangeRate = await receiptService.getExchangeRate(
+          updates.currency.code,
+          company.baseCurrency
+        );
+        expense.currency = updates.currency;
+        expense.exchangeRate = exchangeRate;
+        expense.convertedAmount = expense.amount * exchangeRate;
+      }
+      await expense.save();
+      res.json({
+        message: 'Expense updated successfully',
+        expense: {
+          id: expense._id,
+          title: expense.title,
+          amount: expense.amount,
+          convertedAmount: expense.convertedAmount,
+          currency: expense.currency,
+          category: expense.category,
+          expenseDateTime: expense.expenseDateTime
+        }
+      });
+    } catch (error) {
+      winston.error('Error updating expense:', error);
+      res.status(500).json({
+        message: 'Failed to update expense',
+        error: error.message
+      });
+    }
+  }
+
   /**
    * Submit a new expense
    */
@@ -46,7 +116,7 @@ class ExpenseController {
       console.log('📥 Received request body:', req.body);
       console.log('📥 Request file:', req.file);
       
-      // Parse currency from form data
+      // Parse currency from form data (optional; may be inferred)
       let currency;
       try {
         if (req.body['currency[code]']) {
@@ -77,12 +147,13 @@ class ExpenseController {
         amount,
         category,
         date,
-        notes,
-        submissionDateTime
+        submissionDateTime,
+        locationCountry,
+        ocrData
       } = req.body;
 
       // Validate required fields
-      if (!title || !amount || !currency || !category || !date) {
+      if (!title || !amount || !category || !date) {
         return res.status(400).json({
           success: false,
           message: 'Missing required fields'
@@ -106,7 +177,6 @@ class ExpenseController {
         category,
         date,
         description: description || '',
-        notes: notes || ''
       });
 
       const userId = req.user.id;
@@ -121,13 +191,32 @@ class ExpenseController {
         });
       }
 
+      // If currency is missing, try to infer it from country hints
+      if (!currency) {
+        // 1) Explicit country hint
+        if (locationCountry) {
+          const inferred = await currencyService.getCurrencyByCountry(locationCountry);
+          if (inferred) currency = inferred;
+        }
+        // 2) OCR data country hint
+        if (!currency && ocrData && ocrData.extractedLocation && ocrData.extractedLocation.country) {
+          const inferred = await currencyService.getCurrencyByCountry(ocrData.extractedLocation.country);
+          if (inferred) currency = inferred;
+        }
+      }
+
+      // Fallback to company's base currency
+      if (!currency) {
+        currency = company.baseCurrency;
+      }
+
       // Convert currency if different from company base currency
-      let convertedAmount = amount;
+      let convertedAmount = parsedAmount;
       let exchangeRate = 1;
 
       if (currency.code !== company.baseCurrency.code) {
         const conversion = await currencyService.convertCurrency(
-          amount,
+          parsedAmount,
           currency.code,
           company.baseCurrency.code
         );
@@ -139,26 +228,33 @@ class ExpenseController {
       const expense = new Expense({
         title,
         description,
-        amount,
+        amount: parsedAmount,
         currency,
         convertedAmount,
         exchangeRate,
         category,
-        date: new Date(date),
+        expenseDateTime: new Date(date),
+        submissionDateTime: submissionDateTime ? new Date(submissionDateTime) : new Date(),
         submittedBy: userId,
-        company: companyId,
-        tags: tags || [],
-        notes
+        company: companyId
       });
 
-      // Handle receipt upload if present
+      // Handle receipt upload if present: store binary in DB
       if (req.file) {
+        expense.receiptImage = {
+          data: req.file.buffer,
+          contentType: req.file.mimetype
+        };
+
         expense.receipt = {
-          filename: req.file.filename,
+          filename: req.file.originalname,
           originalName: req.file.originalname,
           mimetype: req.file.mimetype,
           size: req.file.size,
-          url: `/uploads/receipts/${req.file.filename}`
+          image: {
+            data: req.file.buffer,
+            contentType: req.file.mimetype
+          }
         };
       }
 
@@ -172,7 +268,7 @@ class ExpenseController {
         // Check if should be auto-approved
         if (workflow.shouldAutoApprove(expense, req.user)) {
           expense.status = 'approved';
-          expense.addApproval(req.user.id, 'approved', 'Auto-approved by workflow', 0);
+          await expense.addApproval(req.user.id, req.user.role, 'approved', 'Auto-approved by workflow');
         } else {
           expense.status = 'processing';
         }
@@ -182,8 +278,7 @@ class ExpenseController {
 
       const populatedExpense = await Expense.findById(expense._id)
         .populate('submittedBy', 'firstName lastName email')
-        .populate('company', 'name baseCurrency')
-        .populate('workflowId', 'name type');
+        .populate('company', 'name baseCurrency');
 
       winston.info(`Expense submitted: ${expense.title} by user ${userId}`);
 
@@ -235,7 +330,6 @@ class ExpenseController {
       const expenses = await Expense.find(query)
         .populate('company', 'name baseCurrency')
         .populate('approvalHistory.approver', 'firstName lastName email')
-        .populate('workflowId', 'name type')
         .sort({ createdAt: -1 })
         .limit(limit * 1)
         .skip((page - 1) * limit);
@@ -290,7 +384,6 @@ class ExpenseController {
         .populate('submittedBy', 'firstName lastName email role department')
         .populate('company', 'name baseCurrency')
         .populate('approvalHistory.approver', 'firstName lastName email')
-        .populate('workflowId', 'name type')
         .sort({ createdAt: -1 })
         .limit(limit * 1)
         .skip((page - 1) * limit);
@@ -336,8 +429,7 @@ class ExpenseController {
       }
 
       const expense = await Expense.findById(expenseId)
-        .populate('submittedBy', 'firstName lastName email manager')
-        .populate('workflowId');
+        .populate('submittedBy', 'firstName lastName email manager');
 
       if (!expense) {
         return res.status(404).json({
@@ -678,8 +770,4 @@ class ExpenseController {
   }
 }
 
-// Export both the controller and upload middleware
-module.exports = {
-  controller: new ExpenseController(),
-  upload: upload.single('receipt')
-};
+module.exports = new ExpenseController();

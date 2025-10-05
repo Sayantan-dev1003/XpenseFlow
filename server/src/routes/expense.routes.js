@@ -1,5 +1,6 @@
 const express = require('express');
-const { controller: expenseController, upload } = require('../controllers/expense.controller');
+const multer = require('multer');
+const expenseController = require('../controllers/expense.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 const { validate } = require('../middleware/validation.middleware');
 const { parseFormData } = require('../middleware/formdata.middleware');
@@ -7,17 +8,59 @@ const Joi = require('joi');
 
 const router = express.Router();
 
+// Configure multer for memory storage to accept receipt image uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype && file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'));
+    }
+  }
+});
+
 // Validation schemas
+const receiptUploadSchema = {
+  body: Joi.object({
+    companyId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/),
+    category: Joi.string().optional().trim(),
+    notes: Joi.string().optional().trim().max(500)
+  })
+};
+
+const updateReceiptDataSchema = {
+  params: Joi.object({
+    expenseId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/)
+  }),
+  body: Joi.object({
+    title: Joi.string().optional().trim().max(100),
+    description: Joi.string().optional().trim().max(500),
+    amount: Joi.number().optional().min(0.01),
+    category: Joi.string().optional().trim(),
+    expenseDateTime: Joi.date().optional().iso(),
+    currency: Joi.object({
+      code: Joi.string().length(3).uppercase(),
+      name: Joi.string(),
+      symbol: Joi.string()
+    }).optional()
+  })
+};
 const submitExpenseSchema = {
   body: Joi.object({
     title: Joi.string().required().trim().max(100),
     description: Joi.string().optional().trim().max(500),
     amount: Joi.number().required().min(0.01),
+    // Currency can be inferred from location if not provided
     currency: Joi.object({
-      code: Joi.string().required().length(3).uppercase(),
-      name: Joi.string().optional(),
-      symbol: Joi.string().optional()
-    }).required(),
+      code: Joi.string().length(3).uppercase(),
+      name: Joi.string(),
+      symbol: Joi.string()
+    }).optional(),
+    // Optional hints from client OCR
+    locationCountry: Joi.string().optional().trim(),
+    ocrData: Joi.object().optional(),
     category: Joi.string().required().trim(),
     date: Joi.date().required(),
     tags: Joi.array().items(Joi.string().trim()).optional(),
@@ -65,7 +108,7 @@ const querySchema = {
 router.use(authenticate);
 
 // Expense submission routes
-router.post('/', upload, parseFormData, validate(submitExpenseSchema), expenseController.submitExpense);
+router.post('/', upload.single('receipt'), parseFormData, validate(submitExpenseSchema), expenseController.submitExpense);
 router.get('/my-expenses', validate(querySchema), expenseController.getUserExpenses);
 
 // Expense management routes
@@ -78,6 +121,25 @@ router.put('/:expenseId', validate(updateExpenseSchema), expenseController.updat
 router.delete('/:expenseId', expenseController.deleteExpense);
 
 // Approval routes
-router.post('/:expenseId/process', validate(processExpenseSchema), expenseController.processExpense);
+// Process expense report for a specific expense
+router.post('/:id/process', authenticate, validate(processExpenseSchema), expenseController.processExpense);
+
+// Receipt processing routes
+router.post(
+  '/upload-receipt',
+  authenticate,
+  upload.single('receipt'),
+  validate(receiptUploadSchema),
+  expenseController.uploadReceipt
+);
+
+router.patch(
+  '/receipt/:expenseId',
+  authenticate,
+  validate(updateReceiptDataSchema),
+  expenseController.updateExpenseWithReceiptData
+);
+
+module.exports = router;
 
 module.exports = router;
