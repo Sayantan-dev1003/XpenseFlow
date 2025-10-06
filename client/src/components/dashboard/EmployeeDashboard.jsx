@@ -193,7 +193,7 @@ const EmployeeDashboard = ({ user }) => {
         URL.revokeObjectURL(receiptImageSrc);
       }
     };
-  }, [showReceiptViewer, selectedReceipt]);
+  }, [showReceiptViewer, selectedReceipt, receiptImageSrc]);
 
   if (loading) {
     return (
