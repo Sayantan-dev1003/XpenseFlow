@@ -62,9 +62,7 @@ const submitExpenseSchema = {
     locationCountry: Joi.string().optional().trim(),
     ocrData: Joi.object().optional(),
     category: Joi.string().required().trim(),
-    date: Joi.date().required(),
-    tags: Joi.array().items(Joi.string().trim()).optional(),
-    notes: Joi.string().optional().trim().max(1000)
+    date: Joi.date().required()
   })
 };
 
@@ -86,9 +84,7 @@ const updateExpenseSchema = {
       symbol: Joi.string().optional()
     }).optional(),
     category: Joi.string().optional().trim(),
-    date: Joi.date().optional(),
-    tags: Joi.array().items(Joi.string().trim()).optional(),
-    notes: Joi.string().optional().trim().max(1000)
+    date: Joi.date().optional()
   })
 };
 
