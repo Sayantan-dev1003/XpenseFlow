@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import imageCompression from 'browser-image-compression';
 import { FiUpload, FiX, FiEye, FiCheck, FiLoader, FiSave, FiCalendar, FiDollarSign } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import ocrService from '../../services/ocrService';
@@ -9,10 +10,11 @@ const ReceiptUpload = ({ onClose, disabled = false }) => {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [extractedData, setExtractedData] = useState(null);
   const [showPreview, setShowPreview] = useState(false);
-  const [currentStep, setCurrentStep] = useState('upload'); // 'upload' or 'edit'
+  const [currentStep, setCurrentStep] = useState('upload');
   const fileInputRef = useRef(null);
   
   const [editedData, setEditedData] = useState({
@@ -28,19 +30,37 @@ const ReceiptUpload = ({ onClose, disabled = false }) => {
     description: ''
   });
 
-  const handleFileSelect = (event) => {
+  const handleFileSelect = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-
+    setImageLoading(true);
     try {
       ocrService.validateImageFile(file);
-      setSelectedFile(file);
+      const options = {
+        maxSizeMB: 0.05,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+        maxIteration: 20,
+        fileType: 'image/jpeg',
+        initialQuality: 0.7
+      };
+      let compressedFile = await imageCompression(file, options);
+      if (compressedFile.size > 51200) {
+        compressedFile = await imageCompression(file, {
+          ...options,
+          initialQuality: 0.5,
+          maxWidthOrHeight: 800
+        });
+      }
+      setSelectedFile(compressedFile);
       setExtractedData(null);
-      const url = URL.createObjectURL(file);
+      const url = URL.createObjectURL(compressedFile);
       setPreviewUrl(url);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.message || 'Image compression failed');
       resetUpload();
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -100,16 +120,11 @@ const ReceiptUpload = ({ onClose, disabled = false }) => {
         submissionDateTime: new Date().toISOString()
       };
 
-      // Log the data being sent for debugging
-      console.log('Submitting expense:', formattedData);
-      console.log('Receipt file:', selectedFile);
-
       await expenseService.submitExpense(formattedData, selectedFile);
 
       toast.success('Expense submitted successfully!');
       onClose();
     } catch (error) {
-      console.error('Failed to submit expense:', error);
       const errorMessage = error.response?.data?.message || 'Failed to submit expense. Please try again.';
       toast.error(errorMessage);
     } finally {
@@ -320,7 +335,6 @@ const ReceiptUpload = ({ onClose, disabled = false }) => {
           disabled={disabled || isProcessing}
           className="hidden"
         />
-        
         {!selectedFile ? (
           <div>
             <FiUpload className="mx-auto h-12 w-12 text-gray-400" />
@@ -328,10 +342,22 @@ const ReceiptUpload = ({ onClose, disabled = false }) => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={disabled}
+                disabled={disabled || isProcessing || imageLoading}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-500 hover:bg-purple-600 cursor-pointer"
               >
-                Upload Receipt
+                {imageLoading ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></span>
+                    Loading Image...
+                  </>
+                ) : isProcessing ? (
+                  <>
+                    <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></span>
+                    Uploading...
+                  </>
+                ) : (
+                  <>Upload Receipt</>
+                )}
               </button>
             </div>
             <p className="mt-2 text-sm text-gray-500">

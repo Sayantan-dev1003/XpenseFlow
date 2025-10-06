@@ -58,38 +58,6 @@ const EmployeeDashboard = ({ user }) => {
     }
   };
 
-  // Calculate stats from recent expenses (kept for potential future use)
-  // const calculateStats = () => {
-  //   if (!recentExpenses || recentExpenses.length === 0) {
-  //     return { pending: 0, approved: 0, rejected: 0, processing: 0, total: 0 };
-  //   }
-  //   const stats = recentExpenses.reduce(
-  //     (acc, expense) => {
-  //       acc.total += 1;
-  //       switch (expense.status) {
-  //         case "pending":
-  //           acc.pending += 1;
-  //           break;
-  //         case "approved":
-  //           acc.approved += 1;
-  //           break;
-  //         case "rejected":
-  //           acc.rejected += 1;
-  //           break;
-  //         case "processing":
-  //           acc.processing += 1;
-  //           break;
-  //         default:
-  //           break;
-  //       }
-  //       return acc;
-  //     },
-  //     { pending: 0, approved: 0, rejected: 0, processing: 0, total: 0 }
-  //   );
-  //   return stats;
-  // };
-  // const stats = calculateStats();
-
   // Filter expenses based on selected status
   const getFilteredExpenses = () => {
     if (statusFilter === "all") {
@@ -155,14 +123,12 @@ const EmployeeDashboard = ({ user }) => {
         pick(selectedReceipt, 'receiptImage.data') ??
         pick(selectedReceipt, 'receipt.image.data');
 
-      // Support multiple shapes: {type:'Buffer', data:[...]}, Array, ArrayBuffer, Uint8Array, base64 string
       let uint8 = null;
       if (!raw) {
         setReceiptImageSrc(null);
         return;
       }
       if (typeof raw === 'string') {
-        // Assume base64 string
         setReceiptImageSrc(`data:${contentType};base64,${raw}`);
         return;
       }
@@ -187,13 +153,12 @@ const EmployeeDashboard = ({ user }) => {
       setReceiptImageSrc(null);
     }
 
-    // Cleanup on unmount or change
     return () => {
       if (receiptImageSrc) {
         URL.revokeObjectURL(receiptImageSrc);
       }
     };
-  }, [showReceiptViewer, selectedReceipt, receiptImageSrc]);
+  }, [showReceiptViewer, selectedReceipt]);
 
   if (loading) {
     return (
@@ -303,7 +268,6 @@ const EmployeeDashboard = ({ user }) => {
             onReceiptData={() => {
               setShowReceiptModal(false);
               setShowExpenseModal(true);
-              // TODO: Pre-fill expense form with OCR data
             }}
             onClose={() => setShowReceiptModal(false)}
           />

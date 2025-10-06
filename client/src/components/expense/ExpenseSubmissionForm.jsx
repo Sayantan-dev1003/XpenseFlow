@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import imageCompression from 'browser-image-compression';
 import { FiSave, FiX, FiDollarSign, FiCalendar, FiTag, FiFileText, FiUpload } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import expenseService from '../../api/expenseService';
@@ -10,6 +11,7 @@ const ExpenseSubmissionForm = ({ onClose, onSubmitSuccess }) => {
   const [categories, setCategories] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [imageLoading, setImageLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -52,7 +54,6 @@ const ExpenseSubmissionForm = ({ onClose, onSubmitSuccess }) => {
         }));
       }
 
-      // Ensure submissionDateTime is set to now (company-local if backend adjusts; client uses local time)
       setFormData(prev => ({
         ...prev,
         submissionDateTime: new Date(Date.now() - (new Date()).getTimezoneOffset() * 60000).toISOString().slice(0, 16)
@@ -70,7 +71,6 @@ const ExpenseSubmissionForm = ({ onClose, onSubmitSuccess }) => {
       [name]: value
     }));
 
-    // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -94,15 +94,36 @@ const ExpenseSubmissionForm = ({ onClose, onSubmitSuccess }) => {
   };
 
   // Manual file select for non-OCR flow
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
-    setSelectedFile(file);
+    setImageLoading(true);
     try {
-      const url = URL.createObjectURL(file);
+      const options = {
+        maxSizeMB: 0.05,
+        maxWidthOrHeight: 1200,
+        useWebWorker: true,
+        maxIteration: 20,
+        fileType: 'image/jpeg',
+        initialQuality: 0.7
+      };
+      let compressedFile = await imageCompression(file, options);
+      if (compressedFile.size > 51200) {
+        compressedFile = await imageCompression(file, {
+          ...options,
+          initialQuality: 0.5,
+          maxWidthOrHeight: 800
+        });
+      }
+      setSelectedFile(compressedFile);
+      const url = URL.createObjectURL(compressedFile);
       setPreviewUrl(url);
-    } catch {
+    } catch (err) {
       setPreviewUrl(null);
+      setSelectedFile(null);
+      console.error('Image compression failed:', err);
+    } finally {
+      setImageLoading(false);
     }
   };
 
@@ -158,36 +179,17 @@ const ExpenseSubmissionForm = ({ onClose, onSubmitSuccess }) => {
         submissionDateTime: new Date(formData.submissionDateTime).toISOString()
       };
 
-      console.log('📤 Submitting expense data:', expenseData);
-      console.log('📤 Expense data types:', {
-        title: typeof expenseData.title,
-        amount: typeof expenseData.amount,
-        currency: typeof expenseData.currency,
-        category: typeof expenseData.category,
-        date: typeof expenseData.date,
-        description: typeof expenseData.description
-      });
-      console.log('📤 Currency object:', expenseData.currency);
-      console.log('📤 ExpenseDateTime value:', expenseData.expenseDateTime);
-      console.log('📤 SubmissionDateTime value:', expenseData.submissionDateTime);
-
       await expenseService.submitExpense(expenseData, selectedFile);
 
       toast.success('Expense submitted successfully!');
       if (onSubmitSuccess) onSubmitSuccess();
       if (onClose) onClose();
     } catch (error) {
-      console.error('Failed to submit expense:', error);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      console.error('Validation errors:', error.response?.data?.errors);
-
       let errorMessage = 'Failed to submit expense';
       if (error.response?.data?.errors) {
         // Handle validation errors
         const validationErrors = error.response.data.errors;
-        console.error('Full validation errors object:', JSON.stringify(validationErrors, null, 2));
-
+        
         // Extract detailed error messages
         let errorMessages = [];
         if (validationErrors.body && Array.isArray(validationErrors.body)) {
@@ -232,8 +234,22 @@ const ExpenseSubmissionForm = ({ onClose, onSubmitSuccess }) => {
             id="manual-receipt-file"
           />
           <label htmlFor="manual-receipt-file" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-500 hover:bg-purple-600 cursor-pointer">
-            <FiUpload className="w-4 h-4 mr-2" />
-            Choose Image
+            {imageLoading ? (
+              <>
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></span>
+                Loading Image...
+              </>
+            ) : loading ? (
+              <>
+                <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></span>
+                Uploading...
+              </>
+            ) : (
+              <>
+                <FiUpload className="w-4 h-4 mr-2" />
+                Choose Image
+              </>
+            )}
           </label>
           <p className="mt-2 text-sm text-gray-500">PNG, JPG, WebP up to 10MB</p>
           {selectedFile && (
