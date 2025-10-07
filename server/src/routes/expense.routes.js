@@ -131,7 +131,7 @@ router.delete('/:expenseId', expenseController.deleteExpense);
 
 // Approval routes
 // Process expense report for a specific expense
-router.post('/:id/process', authenticate, validate(processExpenseSchema), expenseController.processExpense);
+router.post('/:expenseId/process', authenticate, validate(processExpenseSchema), expenseController.processExpense);
 
 // Receipt processing routes
 router.post(
@@ -148,7 +148,5 @@ router.patch(
   validate(updateReceiptDataSchema),
   expenseController.updateExpenseWithReceiptData
 );
-
-module.exports = router;
 
 module.exports = router;
