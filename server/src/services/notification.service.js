@@ -39,12 +39,8 @@ class NotificationService {
 
       const notifications = [];
 
-      // Send notifications to each approver
       for (const approver of approvers) {
         try {
-          // Email notifications removed
-
-          // SMS notifications removed
         } catch (error) {
           this.logger.error(`Failed to notify approver:`, error);
         }
@@ -60,15 +56,12 @@ class NotificationService {
   /**
    * Send expense approval/rejection notification
    */
-  async notifyExpenseDecision(expense, submitter, approver, action, comment = '') {
+  async notifyExpenseDecision(expense, submitter, approver, action) {
     try {
       this.logger.info(`Sending expense ${action} notification for expense ${expense._id}`);
 
       const notifications = [];
 
-      // Email notifications removed
-
-      // If approved by one but still pending final approval, notify other approvers
       if (action === 'approved' && expense.status === 'processing') {
         const otherApprovers = await User.find({
           company: expense.company,
@@ -77,7 +70,6 @@ class NotificationService {
           _id: { $ne: approver._id }
         });
 
-        // Email notifications removed for other approvers
       }
 
       return { success: true, notifications };
@@ -86,10 +78,6 @@ class NotificationService {
       return { success: false, error: error.message };
     }
   }
-
-  // Email notification functionality removed
-
-  // SMS notification functionality removed
 }
 
 module.exports = new NotificationService();

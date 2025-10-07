@@ -4,7 +4,6 @@ const User = require('../models/User.model');
 const ApprovalWorkflow = require('../models/ApprovalWorkflow.model');
 const currencyService = require('../services/currency.service');
 const receiptService = require('../services/receipt.service');
-const notificationService = require('../services/notification.service');
 const winston = require('winston');
 const multer = require('multer');
 const path = require('path');
@@ -364,7 +363,7 @@ class ExpenseController {
         // Check if should be auto-approved
         if (workflow.shouldAutoApprove(expense, req.user)) {
           expense.status = 'approved';
-          await expense.addApproval(req.user.id, req.user.role, 'approved', 'Auto-approved by workflow');
+          await expense.addApproval(req.user.id, req.user.role, 'approved');
         } else {
           expense.status = 'processing';
         }
@@ -377,16 +376,6 @@ class ExpenseController {
         .populate('company', 'name baseCurrency');
 
       winston.info(`Expense submitted: ${expense.title} by user ${userId}`);
-
-      // Send notifications to managers and finance
-      try {
-        const submitter = await User.findById(userId);
-        await notificationService.notifyExpenseSubmission(populatedExpense, submitter);
-        winston.info(`Notifications sent for expense ${expense._id}`);
-      } catch (notificationError) {
-        winston.error('Failed to send notifications:', notificationError);
-        // Don't fail the expense submission if notifications fail
-      }
 
       res.status(201).json({
         success: true,
@@ -512,7 +501,7 @@ class ExpenseController {
   async processExpense(req, res) {
     try {
       const { expenseId } = req.params;
-      const { action, comment } = req.body;
+      const { action } = req.body;
       const approverId = req.user.id;
 
       if (!['approved', 'rejected'].includes(action)) {
@@ -566,31 +555,13 @@ class ExpenseController {
       }
 
       // Add approval using new dual approval logic
-      await expense.addApproval(approverId, approverRole, action, comment);
+      await expense.addApproval(approverId, approverRole, action);
 
       const updatedExpense = await Expense.findById(expenseId)
         .populate('submittedBy', 'firstName lastName email')
         .populate('company', 'name baseCurrency')
         .populate('approvals.manager.approver', 'firstName lastName email')
-        .populate('approvals.finance.approver', 'firstName lastName email')
-        .populate('workflowId', 'name type');
-
-      // Send notifications
-      try {
-        const approver = await User.findById(approverId);
-        await notificationService.notifyExpenseDecision(
-          updatedExpense,
-          updatedExpense.submittedBy,
-          approver,
-          action,
-          comment
-        );
-        winston.info(`Notifications sent for expense ${action}: ${expense._id}`);
-      } catch (notificationError) {
-        winston.error('Failed to send decision notifications:', notificationError);
-      }
-
-      winston.info(`Expense ${action}: ${expense.title} by ${approverRole} ${approverId}`);
+        .populate('approvals.finance.approver', 'firstName lastName email');
 
       res.json({
         success: true,

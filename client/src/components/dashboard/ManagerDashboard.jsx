@@ -132,7 +132,6 @@ const ManagerDashboard = ({ user }) => {
       await expenseService.processExpense(
         expenseId,
         "approved",
-        "Approved by Manager"
       );
       toast.success("Expense approved successfully!");
       loadDashboardData();
@@ -144,17 +143,14 @@ const ManagerDashboard = ({ user }) => {
   };
 
   const handleReject = async (expenseId) => {
-    const reason = prompt("Please provide a reason for rejection:");
-    if (reason) {
-      try {
-        await expenseService.processExpense(expenseId, "rejected", reason);
-        toast.success("Expense rejected successfully!");
-        loadDashboardData();
-      } catch (error) {
-        toast.error(
-          error.response?.data?.message || "Failed to reject expense."
-        );
-      }
+    try {
+      await expenseService.processExpense(expenseId, "rejected");
+      toast.success("Expense rejected successfully!");
+      loadDashboardData();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to reject expense."
+      );
     }
   };
 
@@ -311,23 +307,24 @@ const ManagerDashboard = ({ user }) => {
                           )}
                           {(expense.status === "pending" ||
                             expense.status === "processing") && (
-                            <>
-                              <button
-                                onClick={() => handleApprove(expense._id)}
-                                className="text-green-600 hover:text-green-900"
-                                title="Approve"
-                              >
-                                <FiCheckCircle className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => handleReject(expense._id)}
-                                className="text-red-600 hover:text-red-900"
-                                title="Reject"
-                              >
-                                <FiXCircle className="w-5 h-5" />
-                              </button>
-                            </>
-                          )}
+                              <>
+                                <button
+                                  onClick={() => handleApprove(expense._id)}
+
+                                  className="text-green-600 hover:text-green-900"
+                                  title="Approve"
+                                >
+                                  <FiCheckCircle className="w-5 h-5" />
+                                </button>
+                                <button
+                                  onClick={() => handleReject(expense._id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Reject"
+                                >
+                                  <FiXCircle className="w-5 h-5" />
+                                </button>
+                              </>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -390,27 +387,27 @@ const ManagerDashboard = ({ user }) => {
               </p>
               {(selectedExpense.status === "pending" ||
                 selectedExpense.status === "processing") && (
-                <div className="mt-4 flex items-center space-x-4">
-                  <button
-                    onClick={() => {
-                      handleApprove(selectedExpense._id);
-                      setShowReceiptViewer(false);
-                    }}
-                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleReject(selectedExpense._id);
-                      setShowReceiptViewer(false);
-                    }}
-                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
+                  <div className="mt-4 flex items-center space-x-4">
+                    <button
+                      onClick={() => {
+                        handleApprove(selectedExpense._id);
+                        setShowReceiptViewer(false);
+                      }}
+                      className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleReject(selectedExpense._id);
+                        setShowReceiptViewer(false);
+                      }}
+                      className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
             </div>
             {receiptImageSrc ? (
               <img

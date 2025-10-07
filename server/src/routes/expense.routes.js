@@ -77,8 +77,7 @@ const submitExpenseSchema = {
 
 const processExpenseSchema = {
   body: Joi.object({
-    action: Joi.string().required().valid('approved', 'rejected'),
-    comment: Joi.string().optional().trim().max(500)
+    action: Joi.string().required().valid('approved', 'rejected')
   })
 };
 

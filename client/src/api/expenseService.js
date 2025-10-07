@@ -96,6 +96,20 @@ class ExpenseService {
     return response.data;
   }
 
+  async processExpense(expenseId, status, reason = '') {
+    if (!expenseId) {
+      throw new Error('Expense ID is required');
+    }
+    
+    const payload = {
+      status,
+      reason: reason || undefined
+    };
+    
+    const response = await this.api.post(`/${expenseId}/process`, payload);
+    return response.data;
+  }
+
   async getUserExpenses(params = {}) {
     const response = await this.api.get('/my-expenses', { params });
     return response.data;
@@ -121,10 +135,9 @@ class ExpenseService {
     return response.data;
   }
 
-  async processExpense(expenseId, action, comment = '') {
+  async processExpense(expenseId, action) {
     const response = await this.api.post(`/${expenseId}/process`, {
       action,
-      comment
     });
     return response.data;
   }

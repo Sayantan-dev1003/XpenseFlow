@@ -122,18 +122,15 @@ const FinanceDashboard = ({ user }) => {
   };
 
   const handleReject = async (expenseId) => {
-    const reason = prompt("Please provide a reason for rejection:");
-    if (reason) {
-      try {
-        await expenseService.processExpense(expenseId, "rejected", reason);
-        toast.success("Expense rejected!");
-        fetchExpenses();
-        fetchStats();
-      } catch (error) {
-        toast.error(
-          error.response?.data?.message || "Failed to reject expense."
-        );
-      }
+    try {
+      await expenseService.processExpense(expenseId, "rejected");
+      toast.success("Expense rejected!");
+      fetchExpenses();
+      fetchStats();
+    } catch (error) {
+      toast.error(
+        error.response?.data?.message || "Failed to reject expense."
+      );
     }
   };
 
@@ -252,21 +249,19 @@ const FinanceDashboard = ({ user }) => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "overview"
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === "overview"
                 ? "border-purple-500 text-purple-600"
                 : "border-transparent text-gray-500"
-            }`}
+              }`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab("approvals")}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === "approvals"
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === "approvals"
                 ? "border-purple-500 text-purple-600"
                 : "border-transparent text-gray-500"
-            }`}
+              }`}
           >
             Approvals
           </button>
@@ -472,23 +467,23 @@ const FinanceDashboard = ({ user }) => {
                           </button>
                           {(expense.status === "pending" ||
                             expense.status === "processing") && (
-                            <>
-                              <button
-                                onClick={() => handleApprove(expense._id)}
-                                className="text-green-600 hover:text-green-900"
-                                title="Approve"
-                              >
-                                <FiCheckCircle />
-                              </button>
-                              <button
-                                onClick={() => handleReject(expense._id)}
-                                className="text-red-600 hover:text-red-900"
-                                title="Reject"
-                              >
-                                <FiXCircle />
-                              </button>
-                            </>
-                          )}
+                              <>
+                                <button
+                                  onClick={() => handleApprove(expense._id)}
+                                  className="text-green-600 hover:text-green-900"
+                                  title="Approve"
+                                >
+                                  <FiCheckCircle />
+                                </button>
+                                <button
+                                  onClick={() => handleReject(expense._id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="Reject"
+                                >
+                                  <FiXCircle />
+                                </button>
+                              </>
+                            )}
                         </div>
                       </td>
                     </tr>
@@ -499,9 +494,8 @@ const FinanceDashboard = ({ user }) => {
               <div className="text-center py-16">
                 <FiFileText className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  {`No ${
-                    expenseFilter === "all" ? "" : expenseFilter
-                  } company expenses`}
+                  {`No ${expenseFilter === "all" ? "" : expenseFilter
+                    } company expenses`}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
                   {expenseFilter === "all"
@@ -558,27 +552,27 @@ const FinanceDashboard = ({ user }) => {
               </p>
               {(selectedExpense.status === "pending" ||
                 selectedExpense.status === "processing") && (
-                <div className="mt-4 flex items-center space-x-4">
-                  <button
-                    onClick={() => {
-                      handleApprove(selectedExpense._id);
-                      setShowReceiptViewer(false);
-                    }}
-                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleReject(selectedExpense._id);
-                      setShowReceiptViewer(false);
-                    }}
-                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
+                  <div className="mt-4 flex items-center space-x-4">
+                    <button
+                      onClick={() => {
+                        handleApprove(selectedExpense._id);
+                        setShowReceiptViewer(false);
+                      }}
+                      className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        handleReject(selectedExpense._id);
+                        setShowReceiptViewer(false);
+                      }}
+                      className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
             </div>
             {receiptImageSrc ? (
               <img
