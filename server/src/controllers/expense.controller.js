@@ -11,38 +11,133 @@ const path = require('path');
 
 // Configure multer for memory storage (for OCR processing)
 const storage = multer.memoryStorage();
-const uploadMiddleware = multer({ 
-    storage: storage,
-    limits: {
-        fileSize: 5 * 1024 * 1024, // 5MB limit
-    },
-    fileFilter: (req, file, cb) => {
-        // Allow only images
-        if (file.mimetype.startsWith('image/')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files are allowed!'), false);
-        }
+const uploadMiddleware = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow only images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
     }
+  }
 });
 
 class ExpenseController {
+  constructor() {
+    // Bind methods to ensure proper 'this' context
+    this.getAllExpenses = this.getAllExpenses.bind(this);
+    this.uploadReceipt = this.uploadReceipt.bind(this);
+    this.updateExpenseWithReceiptData = this.updateExpenseWithReceiptData.bind(this);
+    this.submitExpense = this.submitExpense.bind(this);
+    this.getUserExpenses = this.getUserExpenses.bind(this);
+    this.getPendingExpenses = this.getPendingExpenses.bind(this);
+    this.processExpense = this.processExpense.bind(this);
+    this.getExpenseDetails = this.getExpenseDetails.bind(this);
+    this.getExpenseStats = this.getExpenseStats.bind(this);
+    this.updateExpense = this.updateExpense.bind(this);
+    this.deleteExpense = this.deleteExpense.bind(this);
+  }
+
+  /**
+   * Get all expenses with optional filters
+   */
+  async getAllExpenses(req, res) {
+    try {
+      const { status, sort = 'desc' } = req.query;
+      const filters = {};
+
+      // Only admins can see all expenses
+      if (req.user.role !== 'admin') {
+        filters.userId = req.user._id;
+      }
+
+      // Add status filter if provided
+      if (status && status !== 'all') {
+        filters.status = status;
+      } else if (status === 'all') {
+        // When status is 'all', explicitly include all possible statuses
+        filters.status = { $in: ['pending', 'approved', 'processing', 'rejected'] };
+      }
+
+      // Create and execute the query with proper error handling
+      const expenses = await Expense.find(filters)
+        .populate({
+          // 1. FIXED: Changed path from 'userId' to the correct schema path 'submittedBy'
+          path: 'submittedBy',
+          select: 'firstName lastName email role company',
+          model: 'User'
+        })
+        .populate({
+          path: 'company',
+          select: 'name baseCurrency settings',
+          model: 'Company'
+        })
+        .populate('receipt')
+        .sort({ submissionDateTime: sort === 'desc' ? -1 : 1 })
+        .lean()
+        .exec();
+
+      if (!expenses) {
+        return res.status(404).json({
+          success: false,
+          message: 'No expenses found'
+        });
+      }
+
+      // 2. FIXED: Map data using 'submittedBy' to create the 'user' object the frontend expects
+      const mappedExpenses = expenses.map(expense => {
+        const user = expense.submittedBy; // Use the correctly populated data
+        const mappedExpense = {
+          ...expense,
+          user: user ? {
+            _id: user._id,
+            firstName: user.firstName || '',
+            lastName: user.lastName || '',
+            email: user.email || '',
+            role: user.role || '',
+            company: user.company || null
+          } : null,
+          userId: user ? user._id : null // Ensure userId is also present
+        };
+        delete mappedExpense.submittedBy; // Clean up original field to avoid confusion
+        return mappedExpense;
+      });
+
+      return res.status(200).json({
+        success: true,
+        count: mappedExpenses.length,
+        expenses: mappedExpenses
+      });
+    } catch (error) {
+      winston.error('Error fetching expenses:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch expenses',
+        error: error.message
+      });
+    }
+  }
+
   /**
    * Process and store a receipt image with OCR
    */
   async uploadReceipt(req, res) {
-        try {
-            return res.status(501).json({
-                message: 'Server-side OCR is disabled. Please perform OCR on the client using Tesseract.js and submit structured expense data via the standard submission endpoint.'
-            });
-        } catch (error) {
-            winston.error('Error processing receipt:', error);
-            res.status(500).json({ 
-                message: 'Failed to process receipt',
-                error: error.message 
-            });
-        }
+    try {
+      return res.status(501).json({
+        message: 'Server-side OCR is disabled. Please perform OCR on the client using Tesseract.js and submit structured expense data via the standard submission endpoint.'
+      });
+    } catch (error) {
+      winston.error('Error processing receipt:', error);
+      res.status(500).json({
+        message: 'Failed to process receipt',
+        error: error.message
+      });
     }
+  }
 
   /**
    * Update expense details after receipt processing
@@ -115,7 +210,7 @@ class ExpenseController {
     try {
       console.log('📥 Received request body:', req.body);
       console.log('📥 Request file:', req.file);
-      
+
       // Parse currency from form data (optional; may be inferred)
       let currency;
       try {
@@ -128,7 +223,7 @@ class ExpenseController {
           };
         } else {
           // Try parsing currency as JSON string
-          currency = typeof req.body.currency === 'string' 
+          currency = typeof req.body.currency === 'string'
             ? JSON.parse(req.body.currency)
             : req.body.currency;
         }
@@ -264,7 +359,7 @@ class ExpenseController {
       const workflow = await ApprovalWorkflow.findApplicableWorkflow(expense, req.user);
       if (workflow) {
         expense.workflowId = workflow._id;
-        
+
         // Check if should be auto-approved
         if (workflow.shouldAutoApprove(expense, req.user)) {
           expense.status = 'approved';
@@ -272,7 +367,7 @@ class ExpenseController {
         } else {
           expense.status = 'processing';
         }
-        
+
         await expense.save();
       }
 
@@ -318,7 +413,7 @@ class ExpenseController {
       const { status, page = 1, limit = 10, dateFrom, dateTo, category } = req.query;
 
       const query = { submittedBy: userId };
-      
+
       if (status) query.status = status;
       if (category) query.category = category;
       if (dateFrom || dateTo) {
@@ -486,10 +581,10 @@ class ExpenseController {
       try {
         const approver = await User.findById(approverId);
         await notificationService.notifyExpenseDecision(
-          updatedExpense, 
-          updatedExpense.submittedBy, 
-          approver, 
-          action, 
+          updatedExpense,
+          updatedExpense.submittedBy,
+          approver,
+          action,
           comment
         );
         winston.info(`Notifications sent for expense ${action}: ${expense._id}`);
@@ -577,7 +672,7 @@ class ExpenseController {
 
       let dateFilter = {};
       const now = new Date();
-      
+
       switch (period) {
         case 'week':
           dateFilter = { $gte: new Date(now.setDate(now.getDate() - 7)) };
@@ -770,4 +865,5 @@ class ExpenseController {
   }
 }
 
+// Export instance of the controller
 module.exports = new ExpenseController();

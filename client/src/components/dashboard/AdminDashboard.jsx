@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Modal from "../common/Modal";
 import {
   FiUsers,
   FiDollarSign,
@@ -7,6 +8,7 @@ import {
   FiPlus,
   FiEye,
   FiLogOut,
+  FiUpload,
 } from "react-icons/fi";
 import { useAuth } from "../../hooks/useAuth";
 import expenseService from "../../api/expenseService";
@@ -29,25 +31,110 @@ const AdminDashboard = ({ user }) => {
     workflows: [],
   });
   const [recentExpenses, setRecentExpenses] = useState([]);
+  const [showReceiptViewer, setShowReceiptViewer] = useState(false);
+  const [selectedExpenseId, setSelectedExpenseId] = useState(null);
+  const [receiptImageSrc, setReceiptImageSrc] = useState(null);
+  const [expenseFilter, setExpenseFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [showUserCreationForm, setShowUserCreationForm] = useState(false);
   const [userFilter, setUserFilter] = useState("All");
 
+  // Format submission date for table
+  const formatSubmissionDate = (date) => {
+    try {
+      return new Date(date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Invalid Date";
+    }
+  };
+
+  // Find selected receipt for modal
+  const selectedReceipt = selectedExpenseId
+    ? recentExpenses.find((e) => e._id === selectedExpenseId) || null
+    : null;
+
+  // Build a displayable image URL from binary data when viewer opens
+  useEffect(() => {
+    if (!showReceiptViewer || !selectedReceipt) {
+      if (receiptImageSrc) {
+        URL.revokeObjectURL(receiptImageSrc);
+        setReceiptImageSrc(null);
+      }
+      return;
+    }
+    try {
+      const pick = (obj, path) =>
+        path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+      const contentType =
+        pick(selectedReceipt, "receiptImage.contentType") ||
+        pick(selectedReceipt, "receipt.image.contentType") ||
+        "image/png";
+      let raw =
+        pick(selectedReceipt, "receiptImage.data") ??
+        pick(selectedReceipt, "receipt.image.data");
+      let uint8 = null;
+      if (!raw) {
+        setReceiptImageSrc(null);
+        return;
+      }
+      if (typeof raw === "string") {
+        setReceiptImageSrc(`data:${contentType};base64,${raw}`);
+        return;
+      }
+      if (raw && Array.isArray(raw.data)) {
+        uint8 = new Uint8Array(raw.data);
+      } else if (Array.isArray(raw)) {
+        uint8 = new Uint8Array(raw);
+      } else if (raw instanceof ArrayBuffer) {
+        uint8 = new Uint8Array(raw);
+      } else if (raw instanceof Uint8Array) {
+        uint8 = raw;
+      }
+      if (uint8) {
+        const blob = new Blob([uint8], { type: contentType });
+        const url = URL.createObjectURL(blob);
+        setReceiptImageSrc(url);
+      } else {
+        setReceiptImageSrc(null);
+      }
+    } catch {
+      setReceiptImageSrc(null);
+    }
+    return () => {
+      if (receiptImageSrc) {
+        URL.revokeObjectURL(receiptImageSrc);
+      }
+    };
+  }, [showReceiptViewer, selectedReceipt]);
+
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [expenseFilter]);
+
+  const currentCount = recentExpenses.length;
+  const currentCountLabel =
+    expenseFilter === "all"
+      ? "Total"
+      : expenseFilter.charAt(0).toUpperCase() + expenseFilter.slice(1);
 
   const loadDashboardData = async (retryCount = 0) => {
     try {
       setLoading(true);
 
-      // Use Promise.allSettled to handle partial failures gracefully
       const results = await Promise.allSettled([
         expenseService.getExpenseStats({ period: "month" }),
         companyService.getCompanyStats(),
         workflowService.getWorkflows({ limit: 5 }),
-        expenseService.getPendingExpenses({ limit: 5 }),
+        expenseService.getAllExpenses({
+          status: expenseFilter !== "all" ? expenseFilter : undefined,
+        }),
       ]);
 
       // Check if any requests failed with 401
@@ -92,11 +179,28 @@ const AdminDashboard = ({ user }) => {
             : [],
       });
 
-      setRecentExpenses(
-        pendingExpensesResult.status === "fulfilled"
-          ? pendingExpensesResult.value.data.expenses
-          : []
-      );
+      // Update expenses list with proper error handling and data validation
+      if (
+        pendingExpensesResult.status === "fulfilled" &&
+        pendingExpensesResult.value?.data?.expenses
+      ) {
+        const expenses = pendingExpensesResult.value.data.expenses;
+        setRecentExpenses(
+          expenses.map((expense) => ({
+            ...expense,
+            user: expense.user || expense.userId || {},
+            userId:
+              expense.userId || (expense.user?._id ? expense.user._id : null),
+            submissionDateTime:
+              expense.submissionDateTime || new Date().toISOString(),
+            status: expense.status || "pending",
+            amount: expense.amount || 0,
+          }))
+        );
+      } else {
+        console.warn("No expense data available or request failed");
+        setRecentExpenses([]);
+      }
 
       // Log any non-auth errors
       results.forEach((result, index) => {
@@ -240,56 +344,192 @@ const AdminDashboard = ({ user }) => {
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium text-gray-900">
-                    Recent Expenses
-                  </h3>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      All Expenses
+                    </h3>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                      {currentCountLabel}: {currentCount}
+                    </span>
+                    <div className="relative">
+                      <select
+                        value={expenseFilter}
+                        onChange={(e) => setExpenseFilter(e.target.value)}
+                        className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="all">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="processing">Processing</option>
+                        <option value="rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="p-6">
+              <div className="rounded-b-lg">
                 {recentExpenses.length > 0 ? (
-                  <div className="space-y-4">
-                    {recentExpenses.map((expense) => (
-                      <div
-                        key={expense._id}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                      >
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">
-                            {expense.title}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            by {expense.submittedBy.firstName}{" "}
-                            {expense.submittedBy.lastName}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {expenseService.formatDate(expense.createdAt)}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900">
-                            {expenseService.formatCurrency(
-                              expense.convertedAmount || expense.amount || 0
-                            )}
-                          </p>
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(
-                              expense.status
-                            )}`}
-                          >
-                            {expense.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="rounded-b-lg overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Employee
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Title
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Category
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Submitted
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Amount
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Action
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {recentExpenses.slice(0, 50).map((expense) => (
+                          <tr key={expense._id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                {expense.user?.firstName}{" "}
+                                {expense.user?.lastName}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {expense.user?.email}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="text-sm font-medium text-gray-900">
+                                {expense.title}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                {expense.description}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                              {expense.category}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                              {formatSubmissionDate(
+                                expense.submissionDateTime || expense.createdAt
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(
+                                  expense.status
+                                )}`}
+                              >
+                                {expense.status}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
+                              {expenseService.formatCurrency(
+                                expense.convertedAmount,
+                                expense.company?.baseCurrency?.code || "USD"
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                              {expense.receipt && (
+                                <button
+                                  onClick={() => {
+                                    setSelectedExpenseId(expense._id);
+                                    setShowReceiptViewer(true);
+                                  }}
+                                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-purple-700 hover:text-white bg-purple-50 hover:bg-purple-600 border border-purple-200 rounded-md transition-colors"
+                                  title="View Receipt"
+                                >
+                                  <FiEye className="w-3 h-3 mr-1" />
+                                  View
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-8">
-                    No recent expenses
-                  </p>
+                  <div className="text-center py-8">
+                    <FiDollarSign className="mx-auto h-12 w-12 text-gray-400" />
+                    <p className="mt-2 text-gray-500">No recent expenses</p>
+                    <p className="text-sm text-gray-400">
+                      Submit your first expense to get started
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Receipt Viewer Modal - Placed outside the table structure */}
+          <Modal
+            isOpen={showReceiptViewer}
+            onClose={() => setShowReceiptViewer(false)}
+            title="Receipt Image"
+          >
+            {selectedReceipt && (
+              <div className="space-y-4">
+                <div className="flex justify-between items-start">
+                  <div className="text-sm text-gray-600">
+                    <p className="text-lg">
+                      <strong>Expense:</strong> {selectedReceipt.title}
+                    </p>
+                    <p className="text-lg">
+                      <strong>Amount:</strong>{" "}
+                      {expenseService.formatCurrency(
+                        selectedReceipt.convertedAmount,
+                        selectedReceipt.company?.baseCurrency?.code
+                      )}
+                    </p>
+                    <p className="text-lg">
+                      <strong>Category:</strong> {selectedReceipt.category}
+                    </p>
+                    <p className="text-lg">
+                      <strong>Submitted:</strong>{" "}
+                      {formatSubmissionDate(
+                        selectedReceipt.submissionDateTime ||
+                          selectedReceipt.createdAt
+                      )}
+                    </p>
+                  </div>
+                  {receiptImageSrc ? (
+                    <img
+                      src={receiptImageSrc}
+                      alt="Receipt"
+                      className="max-w-full h-auto rounded-lg shadow-sm"
+                      style={{ maxHeight: "500px" }}
+                    />
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <FiUpload className="mx-auto h-12 w-12 mb-2" />
+                      <p>Receipt image not available</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowReceiptViewer(false)}
+                    className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </Modal>
         </>
       )}
 
@@ -298,7 +538,7 @@ const AdminDashboard = ({ user }) => {
           {/* User Management Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-semibold text-gray-900">
                 User Management
               </h2>
               <p className="text-gray-600">
@@ -309,7 +549,7 @@ const AdminDashboard = ({ user }) => {
               <select
                 value={userFilter}
                 onChange={(e) => setUserFilter(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg text-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
                 <option value="All">All Users</option>
                 <option value="Manager">Managers</option>
@@ -318,7 +558,7 @@ const AdminDashboard = ({ user }) => {
               </select>
               <button
                 onClick={() => setShowUserCreationForm(true)}
-                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors"
+                className="inline-flex items-center px-4 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg shadow-sm transition-colors"
               >
                 <FiPlus className="w-4 h-4 mr-2" />
                 Add User

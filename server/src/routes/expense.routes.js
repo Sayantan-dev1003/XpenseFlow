@@ -22,6 +22,15 @@ const upload = multer({
 });
 
 // Validation schemas
+const getAllExpensesSchema = {
+  query: Joi.object({
+    status: Joi.string().valid('all', 'pending', 'approved', 'rejected', 'processing').optional(),
+    startDate: Joi.date().iso().optional(),
+    endDate: Joi.date().iso().optional(),
+    sort: Joi.string().valid('asc', 'desc').optional()
+  })
+};
+
 const receiptUploadSchema = {
   body: Joi.object({
     companyId: Joi.string().required().regex(/^[0-9a-fA-F]{24}$/),
@@ -109,7 +118,11 @@ router.get('/my-expenses', validate(querySchema), expenseController.getUserExpen
 
 // Expense management routes
 router.get('/pending', validate(querySchema), expenseController.getPendingExpenses);
-router.get('/stats', validate(querySchema), expenseController.getExpenseStats);
+// Get all expenses
+router.get('/', authenticate, validate(getAllExpensesSchema), expenseController.getAllExpenses);
+
+// Get expense routes
+router.get('/stats', authenticate, expenseController.getExpenseStats);
 
 // Individual expense routes
 router.get('/:expenseId', expenseController.getExpenseDetails);

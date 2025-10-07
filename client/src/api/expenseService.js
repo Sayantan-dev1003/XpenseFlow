@@ -31,6 +31,34 @@ class ExpenseService {
     );
   }
 
+  async getAllExpenses(filters = {}, retryCount = 0) {
+    try {
+      const response = await this.api.get('/', { 
+        params: filters,
+        timeout: 15000
+      });
+      
+      if (!response.data || !Array.isArray(response.data.expenses)) {
+        throw new Error('Invalid response format from server');
+      }
+      
+      return response;
+    } catch (error) {
+      if (error.response?.status === 500 && retryCount < 2) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return this.getAllExpenses(filters, retryCount + 1);
+      }
+      
+      if (error.response?.status === 500) {
+        throw new Error('Server error while fetching expenses. Please try again later.');
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timed out. Please check your connection and try again.');
+      }
+      
+      throw error;
+    }
+  }
+
   async submitExpense(expenseData, receiptFile = null) {
     const formData = new FormData();
     

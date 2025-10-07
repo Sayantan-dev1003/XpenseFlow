@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { FiUsers, FiMail, FiShield, FiUser, FiMoreVertical, FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
-import userService from '../../api/userService.js';
-import { toast } from 'react-toastify';
+import React, { useState, useEffect } from "react";
+import {
+  FiUsers,
+  FiMail,
+  FiShield,
+  FiUser,
+  FiMoreVertical,
+  FiEdit,
+  FiTrash2,
+  FiEye,
+} from "react-icons/fi";
+import userService from "../../api/userService.js";
+import { toast } from "react-toastify";
 
-const UserList = ({ filter = 'All' }) => {
+const UserList = ({ filter = "All" }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -13,18 +22,18 @@ const UserList = ({ filter = 'All' }) => {
   useEffect(() => {
     // Filter users whenever the filter prop or users array changes
     const filterUsers = () => {
-      if (filter === 'All') {
+      if (filter === "All") {
         setFilteredUsers(users);
         return;
       }
 
       const roleMap = {
-        'Manager': 'manager',
-        'Employee': 'employee',
-        'Finance': 'finance'
+        Manager: "manager",
+        Employee: "employee",
+        Finance: "finance",
       };
 
-      const filtered = users.filter(user => user.role === roleMap[filter]);
+      const filtered = users.filter((user) => user.role === roleMap[filter]);
       setFilteredUsers(filtered);
     };
 
@@ -43,8 +52,8 @@ const UserList = ({ filter = 'All' }) => {
         setUsers(response.data.users || []);
       }
     } catch (error) {
-      console.error('Failed to load users:', error);
-      toast.error('Failed to load users');
+      console.error("Failed to load users:", error);
+      toast.error("Failed to load users");
     } finally {
       setLoading(false);
     }
@@ -52,13 +61,13 @@ const UserList = ({ filter = 'All' }) => {
 
   const getRoleIcon = (role) => {
     switch (role) {
-      case 'admin':
+      case "admin":
         return <FiShield className="w-4 h-4 text-red-600" />;
-      case 'manager':
+      case "manager":
         return <FiUsers className="w-4 h-4 text-blue-600" />;
-      case 'employee':
+      case "employee":
         return <FiUser className="w-4 h-4 text-green-600" />;
-      case 'finance':
+      case "finance":
         return <FiShield className="w-4 h-4 text-purple-600" />;
       default:
         return <FiUser className="w-4 h-4 text-gray-600" />;
@@ -67,20 +76,20 @@ const UserList = ({ filter = 'All' }) => {
 
   const getRoleBadge = (role) => {
     const badges = {
-      admin: 'bg-red-100 text-red-800 border-red-200',
-      manager: 'bg-blue-100 text-blue-800 border-blue-200',
-      employee: 'bg-green-100 text-green-800 border-green-200',
-      finance: 'bg-purple-100 text-purple-800 border-purple-200'
+      admin: "bg-red-100 text-red-800 border-red-200",
+      manager: "bg-blue-100 text-blue-800 border-blue-200",
+      employee: "bg-green-100 text-green-800 border-green-200",
+      finance: "bg-purple-100 text-purple-800 border-purple-200",
     };
-    
-    return badges[role] || 'bg-gray-100 text-gray-800 border-gray-200';
+
+    return badges[role] || "bg-gray-100 text-gray-800 border-gray-200";
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -90,12 +99,12 @@ const UserList = ({ filter = 'All' }) => {
 
   const handleEditUser = (user) => {
     // TODO: Implement edit user functionality
-    toast.info('Edit user functionality coming soon');
+    toast.info("Edit user functionality coming soon");
   };
 
   const handleDeleteUser = (user) => {
     // TODO: Implement delete user functionality
-    toast.info('Delete user functionality coming soon');
+    toast.info("Delete user functionality coming soon");
   };
 
   const handleViewUser = (user) => {
@@ -119,12 +128,6 @@ const UserList = ({ filter = 'All' }) => {
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden flex flex-col h-[calc(100vh-285px)]">
-      {/* User Count */}
-      <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-        <p className="text-sm text-gray-600">
-          Showing {filteredUsers.length} {filter === 'All' ? 'total' : filter} users
-        </p>
-      </div>
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -133,10 +136,18 @@ const UserList = ({ filter = 'All' }) => {
               <FiUsers className="w-5 h-5 text-blue-600" />
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Team Members</h3>
-              <p className="text-sm text-gray-500">{users.length} users in your company</p>
+              <h3 className="text-base font-medium text-gray-900">
+                Team Members
+              </h3>
+              <p className="text-sm text-gray-500">
+                {users.length} users in your company
+              </p>
             </div>
           </div>
+          <p className="text-sm text-gray-600">
+            Showing {filteredUsers.length} {filter === "All" ? "total" : filter}{" "}
+            users
+          </p>
         </div>
       </div>
 
@@ -146,52 +157,67 @@ const UserList = ({ filter = 'All' }) => {
           <div className="p-8 text-center">
             <FiUsers className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {users.length === 0 ? 'No users found' : `No ${filter} users found`}
+              {users.length === 0
+                ? "No users found"
+                : `No ${filter} users found`}
             </h3>
             <p className="text-gray-500">
-              {users.length === 0 ? 'Start by creating your first team member.' : `Try selecting a different filter option.`}
+              {users.length === 0
+                ? "Start by creating your first team member."
+                : `Try selecting a different filter option.`}
             </p>
           </div>
         ) : (
           filteredUsers.map((user) => (
-            <div key={user._id} className="p-6 hover:bg-gray-50 transition-colors">
+            <div
+              key={user._id}
+              className="px-6 py-4 hover:bg-gray-50 transition-colors"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   {/* Avatar */}
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-full flex items-center justify-center text-white font-semibold">
-                    {(user.firstName || '').charAt(0)}{(user.lastName || '').charAt(0)}
+                    {(user.firstName || "").charAt(0)}
+                    {(user.lastName || "").charAt(0)}
                   </div>
-                  
+
                   {/* User Info */}
                   <div className="flex-1">
                     <div className="flex items-center space-x-2 mb-1">
                       <h4 className="text-sm font-medium text-gray-900">
-                        {user.firstName || ''} {user.lastName || ''}
+                        {user.firstName || ""} {user.lastName || ""}
                       </h4>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadge(user.role)}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getRoleBadge(
+                          user.role
+                        )}`}
+                      >
                         {getRoleIcon(user.role)}
                         <span className="ml-1 capitalize">{user.role}</span>
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
                       <div className="flex items-center space-x-1">
                         <FiMail className="w-3 h-3" />
                         <span>{user.email}</span>
                       </div>
-                      
+
                       {user.manager && (
                         <div className="flex items-center space-x-1">
                           <FiUsers className="w-3 h-3" />
-                          <span>Reports to {user.manager.firstName || ''} {user.manager.lastName || ''}</span>
+                          <span>
+                            Reports to {user.manager.firstName || ""}{" "}
+                            {user.manager.lastName || ""}
+                          </span>
                         </div>
                       )}
-                      
+
                       <span>Joined {formatDate(user.createdAt)}</span>
                     </div>
                   </div>
                 </div>
-                
+
                 {/* Actions */}
                 <div className="relative">
                   <button
@@ -200,7 +226,7 @@ const UserList = ({ filter = 'All' }) => {
                   >
                     <FiMoreVertical className="w-4 h-4 text-gray-500" />
                   </button>
-                  
+
                   {showActions === user._id && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
                       <div className="py-1">
@@ -224,7 +250,7 @@ const UserList = ({ filter = 'All' }) => {
                           <FiEdit className="w-4 h-4 mr-3" />
                           Edit User
                         </button>
-                        {user.role !== 'admin' && (
+                        {user.role !== "admin" && (
                           <button
                             onClick={() => {
                               handleDeleteUser(user);
