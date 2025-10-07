@@ -137,21 +137,12 @@ expenseSchema.virtual('isPending').get(function() {
   return this.status === 'pending' || this.status === 'processing';
 });
 
-// Virtual for latest approval action
-expenseSchema.virtual('latestApproval').get(function() {
-  if (this.approvalHistory && this.approvalHistory.length > 0) {
-    return this.approvalHistory[this.approvalHistory.length - 1];
-  }
-  return null;
-});
-
 // Indexes for better performance
 expenseSchema.index({ submittedBy: 1 });
 expenseSchema.index({ company: 1 });
 expenseSchema.index({ status: 1 });
 expenseSchema.index({ date: -1 });
 expenseSchema.index({ category: 1 });
-expenseSchema.index({ 'approvalHistory.approver': 1 });
 expenseSchema.index({ createdAt: -1 });
 
 // Compound indexes
@@ -199,13 +190,6 @@ expenseSchema.pre('save', async function(next) {
 
 // Instance method to add approval with dual approval logic
 expenseSchema.methods.addApproval = function(approverId, approverRole, action) {
-  // Add to approval history
-  this.approvalHistory.push({
-    approver: approverId,
-    action: action,
-    timestamp: new Date()
-  });
-  
   if (action === 'rejected') {
     // Any rejection immediately rejects the expense
     this.status = 'rejected';
@@ -296,7 +280,6 @@ expenseSchema.statics.getByStatus = function(status, companyId, options = {}) {
   return this.find(query)
     .populate('submittedBy', 'firstName lastName email role')
     .populate('company', 'name baseCurrency')
-    .populate('approvalHistory.approver', 'firstName lastName email')
     .sort({ createdAt: -1 });
 };
 

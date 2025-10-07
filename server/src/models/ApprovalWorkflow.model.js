@@ -246,11 +246,6 @@ approvalWorkflowSchema.methods.checkPercentageApproval = function(expense) {
     this.rules.percentage.eligibleApprovers : 
     this.rules.hybrid.percentage.eligibleApprovers;
   
-  const approvedCount = expense.approvalHistory.filter(approval => 
-    approval.action === 'approved' && 
-    eligibleApprovers.some(approver => approver.toString() === approval.approver.toString())
-  ).length;
-  
   const currentPercentage = (approvedCount / eligibleApprovers.length) * 100;
   
   return {

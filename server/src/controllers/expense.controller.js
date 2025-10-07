@@ -425,7 +425,6 @@ class ExpenseController {
 
       const expenses = await Expense.find(query)
         .populate('company', 'name baseCurrency')
-        .populate('approvalHistory.approver', 'firstName lastName email')
         .sort({ createdAt: -1 })
         .limit(limit * 1)
         .skip((page - 1) * limit);
@@ -479,7 +478,6 @@ class ExpenseController {
       const expenses = await Expense.find(query)
         .populate('submittedBy', 'firstName lastName email role department')
         .populate('company', 'name baseCurrency')
-        .populate('approvalHistory.approver', 'firstName lastName email')
         .sort({ createdAt: -1 })
         .limit(limit * 1)
         .skip((page - 1) * limit);
@@ -573,7 +571,6 @@ class ExpenseController {
       const updatedExpense = await Expense.findById(expenseId)
         .populate('submittedBy', 'firstName lastName email')
         .populate('company', 'name baseCurrency')
-        .populate('approvalHistory.approver', 'firstName lastName email')
         .populate('approvals.manager.approver', 'firstName lastName email')
         .populate('approvals.finance.approver', 'firstName lastName email')
         .populate('workflowId', 'name type');
@@ -624,7 +621,6 @@ class ExpenseController {
       const expense = await Expense.findById(expenseId)
         .populate('submittedBy', 'firstName lastName email role department')
         .populate('company', 'name baseCurrency')
-        .populate('approvalHistory.approver', 'firstName lastName email role')
         .populate('workflowId', 'name type rules');
 
       if (!expense) {
