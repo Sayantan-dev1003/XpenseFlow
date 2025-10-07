@@ -1,6 +1,8 @@
 const Company = require('../models/Company.model');
 const User = require('../models/User.model');
+const Expense = require('../models/Expense.model');
 const currencyService = require('../services/currency.service');
+const budgetService = require('../services/budget.service');
 const winston = require('winston');
 
 class CompanyController {
@@ -189,6 +191,67 @@ class CompanyController {
     }
   }
 
+  /**
+   * Get and update company budget for the current month
+   */
+  async getCompanyBudget(req, res) {
+    try {
+      const companyId = req.user.company;
+
+      // 1. Get or create the budget record for the current month (with rollover)
+      const currentBudget = await budgetService.getAndUpdateBudget(companyId);
+
+      // 2. Calculate total spent on approved expenses for the current month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+      const approvedExpensesTotal = await Expense.aggregate([
+        {
+          $match: {
+            company: companyId,
+            status: 'approved',
+            expenseDateTime: { $gte: startOfMonth, $lte: endOfMonth }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalSpent: { $sum: '$convertedAmount' }
+          }
+        }
+      ]);
+
+      const totalSpent = approvedExpensesTotal[0]?.totalSpent || 0;
+
+      // 3. Update the 'spent' amount in the budget history
+      const company = await Company.findById(companyId);
+      const budgetRecord = company.budgetHistory.find(b => b.year === currentBudget.year && b.month === currentBudget.month);
+      if (budgetRecord) {
+        budgetRecord.spent = totalSpent;
+        await company.save();
+      }
+
+      // 4. Send the final budget details
+      res.json({
+        success: true,
+        data: {
+          budget: {
+            allocated: currentBudget.allocated,
+            spent: totalSpent,
+            remaining: currentBudget.allocated - totalSpent
+          }
+        }
+      });
+    } catch (error) {
+      winston.error('Error fetching company budget:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch company budget',
+        error: error.message
+      });
+    }
+  }
 
   /**
    * Get supported currencies

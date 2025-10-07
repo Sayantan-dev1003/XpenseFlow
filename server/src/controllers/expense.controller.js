@@ -50,9 +50,14 @@ class ExpenseController {
       const { status, sort = 'desc' } = req.query;
       const filters = {};
 
-      // Only admins can see all expenses
-      if (req.user.role !== 'admin') {
-        filters.userId = req.user._id;
+      // If the user is a manager, only show expenses from their team members.
+      if (req.user.role === 'manager') {
+        const teamMembers = await User.find({ manager: req.user._id });
+        const teamMemberIds = teamMembers.map(member => member._id);
+        filters.submittedBy = { $in: teamMemberIds };
+      } else if (req.user.role !== 'admin') {
+        // For employees, only show their own expenses.
+        filters.submittedBy = req.user._id;
       }
 
       // Add status filter if provided
@@ -208,8 +213,8 @@ class ExpenseController {
    */
   async submitExpense(req, res) {
     try {
-      console.log('📥 Received request body:', req.body);
-      console.log('📥 Request file:', req.file);
+      console.log('Received request body:', req.body);
+      console.log('Request file:', req.file);
 
       // Parse currency from form data (optional; may be inferred)
       let currency;
@@ -265,7 +270,7 @@ class ExpenseController {
         });
       }
 
-      console.log('📋 Processed data:', {
+      console.log('Processed data:', {
         title,
         amount: parsedAmount,
         currency,
@@ -688,12 +693,12 @@ class ExpenseController {
       const baseQuery = { company: companyId };
       if (dateFilter.$gte) baseQuery.createdAt = dateFilter;
 
-      // If user is not admin, only show their own stats
-      if (!req.user.isAdmin()) {
+      // If user is not admin or finance, only show their own stats
+      if (!req.user.isAdmin() && req.user.role !== 'finance') {
         baseQuery.submittedBy = userId;
       }
 
-      const stats = await Expense.aggregate([
+      const statsPromise = Expense.aggregate([
         { $match: baseQuery },
         {
           $group: {
@@ -704,7 +709,7 @@ class ExpenseController {
         }
       ]);
 
-      const categoryStats = await Expense.aggregate([
+      const categoryStatsPromise = Expense.aggregate([
         { $match: baseQuery },
         {
           $group: {
@@ -717,19 +722,42 @@ class ExpenseController {
         { $limit: 10 }
       ]);
 
+      // New: Calculate total approved amount separately
+      const approvedAmountPromise = Expense.aggregate([
+        { $match: { ...baseQuery, status: 'approved' } },
+        {
+          $group: {
+            _id: null,
+            totalApprovedAmount: { $sum: '$convertedAmount' }
+          }
+        }
+      ]);
+
+      const [stats, categoryStats, approvedAmountResult] = await Promise.all([
+        statsPromise,
+        categoryStatsPromise,
+        approvedAmountPromise
+      ]);
+
+      const totalApprovedAmount = approvedAmountResult[0]?.totalApprovedAmount || 0;
+
       const result = {
         summary: {
           total: 0,
           pending: 0,
           approved: 0,
           rejected: 0,
-          totalAmount: 0
+          processing: 0,
+          totalAmount: 0,
+          totalApprovedAmount: totalApprovedAmount // Add the new value here
         },
         categories: categoryStats
       };
 
       stats.forEach(stat => {
-        result.summary[stat._id] = stat.count;
+        if (result.summary.hasOwnProperty(stat._id)) {
+          result.summary[stat._id] = stat.count;
+        }
         result.summary.total += stat.count;
         result.summary.totalAmount += stat.totalAmount;
       });

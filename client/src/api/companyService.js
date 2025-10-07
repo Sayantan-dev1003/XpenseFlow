@@ -51,6 +51,11 @@ class CompanyService {
     return response.data;
   }
 
+  async getCompanyBudget() {
+    const response = await this.api.get('/budget');
+    return response.data;
+  }
+
   async getCountriesWithCurrencies() {
     const response = await this.api.get('/countries');
     return response.data;

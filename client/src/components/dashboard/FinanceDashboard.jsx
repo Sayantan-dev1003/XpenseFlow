@@ -1,92 +1,207 @@
-import React, { useState, useEffect } from 'react';
-import { FiDollarSign, FiTrendingUp, FiFileText, FiCheckCircle, FiXCircle, FiDownload, FiLogOut, FiClock } from 'react-icons/fi';
-import { useAuth } from '../../hooks/useAuth';
-import expenseService from '../../api/expenseService';
+// sayantan-dev1003/xpenseflow/XpenseFlow-cc6b85c477e1f12a15323e90201ce75bd1711fdb/client/src/components/dashboard/FinanceDashboard.jsx
+
+import React, { useState, useEffect } from "react";
+import {
+  FiDollarSign,
+  FiTrendingUp,
+  FiFileText,
+  FiCheckCircle,
+  FiXCircle,
+  FiLogOut,
+  FiClock,
+  FiEye,
+  FiUpload,
+} from "react-icons/fi";
+import { useAuth } from "../../hooks/useAuth";
+import expenseService from "../../api/expenseService";
+import companyService from "../../api/companyService";
+import { toast } from "react-toastify";
+import Modal from "../common/Modal";
+
+// A simple bar chart component for graphical representation
+const BudgetChart = ({ spent, remaining, allocated }) => {
+  const total = allocated > 0 ? allocated : spent + remaining;
+  const spentPercentage = total > 0 ? (spent / total) * 100 : 0;
+  const remainingPercentage = 100 - spentPercentage;
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2 text-sm">
+        <span className="font-medium text-gray-700">
+          Spent: {expenseService.formatCurrency(spent)}
+        </span>
+        <span className="font-medium text-gray-500">
+          Allocated: {expenseService.formatCurrency(allocated)}
+        </span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+        <div
+          className="bg-purple-600 h-4 rounded-full"
+          style={{ width: `${spentPercentage}%` }}
+        ></div>
+      </div>
+      <p className="text-right text-sm text-green-600 mt-2 font-semibold">
+        {expenseService.formatCurrency(remaining)} Remaining (
+        {remainingPercentage.toFixed(1)}%)
+      </p>
+    </div>
+  );
+};
 
 const FinanceDashboard = ({ user }) => {
-  const { logout } = useAuth();
+  const { logout, handleAuthFailure } = useAuth();
   const [stats, setStats] = useState({
-    expenses: { total: 0, pending: 0, approved: 0, rejected: 0, totalAmount: 0 },
+    expenses: {
+      total: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      totalAmount: 0,
+      totalApprovedAmount: 0,
+    },
     budget: { allocated: 0, spent: 0, remaining: 0 },
-    reports: []
   });
+  const [allExpenses, setAllExpenses] = useState([]);
   const [pendingExpenses, setPendingExpenses] = useState([]);
-  const [recentActivity, setRecentActivity] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
-
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [expenseFilter, setExpenseFilter] = useState("all");
+  const [showReceiptViewer, setShowReceiptViewer] = useState(false);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [receiptImageSrc, setReceiptImageSrc] = useState(null);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      
-      const [expenseStats, pending, allExpenses] = await Promise.all([
-        expenseService.getExpenseStats({ period: 'month' }),
-        expenseService.getPendingExpenses({ limit: 10 }),
-        expenseService.getAllExpenses({ limit: 5 })
+
+      const [expenseStatsRes, budgetRes, allExpensesRes] = await Promise.all([
+        expenseService.getExpenseStats({ period: "month" }),
+        companyService.getCompanyBudget(),
+        expenseService.getAllExpenses({
+          status: expenseFilter !== "all" ? expenseFilter : undefined,
+        }),
       ]);
 
       setStats({
-        expenses: expenseStats.data.stats.summary,
-        budget: {
-          allocated: 100000, // This would come from company settings
-          spent: expenseStats.data.stats.summary.totalAmount || 0,
-          remaining: 100000 - (expenseStats.data.stats.summary.totalAmount || 0)
-        }
+        expenses: expenseStatsRes.data.stats.summary,
+        budget: budgetRes.data.budget,
       });
 
-      setPendingExpenses(pending.data.expenses);
-      setRecentActivity(allExpenses.data.expenses);
+      const expenses = allExpensesRes.data.expenses || [];
+      setAllExpenses(expenses);
+      setPendingExpenses(
+        expenses.filter(
+          (exp) => exp.status === "pending" || exp.status === "processing"
+        )
+      );
     } catch (error) {
-      console.error('Failed to load finance dashboard data:', error);
+      console.error("Failed to load finance dashboard data:", error);
+      toast.error("Failed to load dashboard data.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApproveExpense = async (expenseId) => {
+  useEffect(() => {
+    loadDashboardData();
+  }, [expenseFilter]);
+
+  const handleApprove = async (expenseId) => {
     try {
-      const result = await expenseService.processExpense(expenseId, 'approved', 'Approved by finance team');
-      
-      // Show success message based on approval status
-      if (result.data.expense.status === 'approved') {
-        alert('✅ Expense fully approved! Both manager and finance have approved.');
-      } else if (result.data.expense.status === 'processing') {
-        alert('✅ Expense approved by finance. Waiting for manager approval.');
-      }
-      
+      await expenseService.processExpense(
+        expenseId,
+        "approved",
+        "Approved by Finance"
+      );
+      toast.success("Expense approved successfully!");
       loadDashboardData(); // Refresh data
     } catch (error) {
-      console.error('Failed to approve expense:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to approve expense';
-      alert(`❌ ${errorMessage}`);
+      toast.error(
+        error.response?.data?.message || "Failed to approve expense."
+      );
     }
   };
 
-  const handleRejectExpense = async (expenseId) => {
-    const comment = prompt('Please provide a reason for rejection:');
-    if (!comment || comment.trim() === '') {
-      if (comment !== null) {
-        alert('Please provide a reason for rejection.');
+  const handleReject = async (expenseId) => {
+    const reason = prompt("Please provide a reason for rejection:");
+    if (reason) {
+      try {
+        await expenseService.processExpense(expenseId, "rejected", reason);
+        toast.success("Expense rejected successfully!");
+        loadDashboardData();
+      } catch (error) {
+        toast.error(
+          error.response?.data?.message || "Failed to reject expense."
+        );
       }
+    }
+  };
+
+  const handleViewReceipt = (expense) => {
+    setSelectedExpense(expense);
+    setShowReceiptViewer(true);
+  };
+
+  const formatSubmissionDate = (date) => {
+    try {
+      return new Date(date).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Invalid Date";
+    }
+  };
+
+  useEffect(() => {
+    if (!showReceiptViewer || !selectedExpense) {
+      if (receiptImageSrc) URL.revokeObjectURL(receiptImageSrc);
+      setReceiptImageSrc(null);
       return;
     }
-
     try {
-      await expenseService.processExpense(expenseId, 'rejected', comment);
-      alert('✅ Expense rejected successfully.');
-      loadDashboardData(); // Refresh data
-    } catch (error) {
-      console.error('Failed to reject expense:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to reject expense';
-      alert(`❌ ${errorMessage}`);
+      const pick = (obj, path) =>
+        path.split(".").reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+      const contentType =
+        pick(selectedExpense, "receiptImage.contentType") ||
+        pick(selectedExpense, "receipt.image.contentType") ||
+        "image/png";
+      let raw =
+        pick(selectedExpense, "receiptImage.data") ??
+        pick(selectedExpense, "receipt.image.data");
+      let uint8 = null;
+      if (!raw) {
+        setReceiptImageSrc(null);
+        return;
+      }
+      if (typeof raw === "string") {
+        setReceiptImageSrc(`data:${contentType};base64,${raw}`);
+        return;
+      }
+      if (raw && Array.isArray(raw.data)) {
+        uint8 = new Uint8Array(raw.data);
+      } else if (raw instanceof Uint8Array) {
+        uint8 = raw;
+      }
+      if (uint8) {
+        const blob = new Blob([uint8], { type: contentType });
+        const url = URL.createObjectURL(blob);
+        setReceiptImageSrc(url);
+      } else {
+        setReceiptImageSrc(null);
+      }
+    } catch {
+      setReceiptImageSrc(null);
     }
-  };
+    return () => {
+      if (receiptImageSrc) URL.revokeObjectURL(receiptImageSrc);
+    };
+  }, [showReceiptViewer, selectedExpense]);
 
-  const StatCard = ({ title, value, icon: Icon, color, subtitle, trend }) => (
+  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center">
         <div className={`flex-shrink-0 p-3 rounded-lg ${color}`}>
@@ -96,46 +211,39 @@ const FinanceDashboard = ({ user }) => {
           <p className="text-sm font-medium text-gray-500">{title}</p>
           <p className="text-2xl font-semibold text-gray-900">{value}</p>
           {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-          {trend && (
-            <div className="flex items-center mt-1">
-              <span className={`text-xs font-medium ${trend.positive ? 'text-green-600' : 'text-red-600'}`}>
-                {trend.value}
-              </span>
-            </div>
-          )}
         </div>
       </div>
     </div>
   );
 
+  const capitalizedRole =
+    user.role.charAt(0).toUpperCase() + user.role.slice(1);
+
   if (loading) {
-    return (
-      <div className="p-6">
-        <div className="animate-pulse">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow p-6">
-                <div className="h-16 bg-gray-200 rounded"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
+    return <div className="p-6 text-center">Loading dashboard...</div>;
   }
 
   return (
     <div className="p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Finance Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {user.firstName}! Manage company finances and expense approvals.</p>
+      <div className="mb-8 flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Finance Dashboard
+          </h1>
+          <p className="text-gray-600">
+            Welcome back, {user.firstName}! Manage company finances.
+          </p>
+        </div>
+        <div className="flex items-center space-x-4">
+          <div className="text-right">
+            <p className="text-gray-500 text-sm ">{user.email}</p>
+            <p className="text-gray-500 text-sm font-semibold">
+              {capitalizedRole}
+            </p>
           </div>
           <button
             onClick={logout}
-            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200"
+            className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
           >
             <FiLogOut className="h-4 w-4" />
             <span>Logout</span>
@@ -143,52 +251,37 @@ const FinanceDashboard = ({ user }) => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="mb-8">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'overview'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('approvals')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'approvals'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Approvals
-            </button>
-            <button
-              onClick={() => setActiveTab('reports')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeTab === 'reports'
-                  ? 'border-purple-500 text-purple-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              Reports
-            </button>
-          </nav>
-        </div>
+      <div className="mb-8 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab("overview")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "overview"
+                ? "border-purple-500 text-purple-600"
+                : "border-transparent text-gray-500"
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab("approvals")}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "approvals"
+                ? "border-purple-500 text-purple-600"
+                : "border-transparent text-gray-500"
+            }`}
+          >
+            Approvals
+          </button>
+        </nav>
       </div>
 
-      {/* Tab Content */}
-      {activeTab === 'overview' && (
+      {activeTab === "overview" && (
         <>
-          {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatCard
-              title="Total Expenses"
-              value={stats.expenses?.total || 0}
+              title="Approved Expenses"
+              value={stats.expenses?.approved || 0}
               icon={FiFileText}
               color="bg-blue-500"
               subtitle="This month"
@@ -201,92 +294,75 @@ const FinanceDashboard = ({ user }) => {
               subtitle="Awaiting review"
             />
             <StatCard
-              title="Monthly Total"
-              value={expenseService.formatCurrency(stats.expenses?.totalAmount || 0)}
+              title="Monthly Spend"
+              value={expenseService.formatCurrency(
+                stats.expenses?.totalApprovedAmount || 0
+              )}
               icon={FiDollarSign}
               color="bg-green-500"
               subtitle="Approved expenses"
             />
             <StatCard
               title="Budget Remaining"
-              value={expenseService.formatCurrency(stats.budget?.remaining || 0)}
+              value={expenseService.formatCurrency(
+                stats.budget?.remaining || 0
+              )}
               icon={FiTrendingUp}
               color="bg-purple-500"
-              subtitle={`of ${expenseService.formatCurrency(stats.budget?.allocated || 0)} allocated`}
             />
           </div>
 
-          {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Budget Overview */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Budget Overview</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Budget Overview
+                </h3>
               </div>
               <div className="p-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-500">Total Budget</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {expenseService.formatCurrency(stats.budget?.allocated || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-500">Amount Spent</span>
-                    <span className="text-sm font-semibold text-gray-900">
-                      {expenseService.formatCurrency(stats.budget?.spent || 0)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-500">Remaining</span>
-                    <span className="text-sm font-semibold text-green-600">
-                      {expenseService.formatCurrency(stats.budget?.remaining || 0)}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-purple-600 h-2 rounded-full" 
-                      style={{ 
-                        width: `${Math.min(100, ((stats.budget?.spent || 0) / (stats.budget?.allocated || 1)) * 100)}%` 
-                      }}
-                    ></div>
-                  </div>
-                </div>
+                <BudgetChart
+                  spent={stats.budget.spent}
+                  remaining={stats.budget.remaining}
+                  allocated={stats.budget.allocated}
+                />
               </div>
             </div>
 
-            {/* Recent Activity */}
             <div className="bg-white rounded-lg shadow">
               <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+                <h3 className="text-lg font-medium text-gray-900">
+                  Pending Approvals
+                </h3>
               </div>
               <div className="p-6">
-                {recentActivity.length > 0 ? (
+                {pendingExpenses.length > 0 ? (
                   <div className="space-y-4">
-                    {recentActivity.map((expense) => (
-                      <div key={expense._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900">{expense.title}</p>
-                          <p className="text-sm text-gray-500">
-                            by {expense.submittedBy.firstName} {expense.submittedBy.lastName}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {expenseService.formatDate(expense.createdAt)}
-                          </p>
-                        </div>
-                        <div className="text-right">
+                    {pendingExpenses.slice(0, 5).map((expense) => (
+                      <div
+                        key={expense._id}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div>
                           <p className="font-medium text-gray-900">
-                            {expenseService.formatCurrency(expense.amount, expense.currency?.code)}
+                            {expense.title}
                           </p>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
-                            {expense.status}
-                          </span>
+                          <p className="text-sm text-gray-500">
+                            by {expense.user?.firstName}
+                          </p>
                         </div>
+                        <p className="font-medium text-gray-900">
+                          {expenseService.formatCurrency(
+                            expense.amount,
+                            expense.currency?.code
+                          )}
+                        </p>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-8">No recent activity</p>
+                  <p className="text-gray-500 text-center py-8">
+                    No pending approvals.
+                  </p>
                 )}
               </div>
             </div>
@@ -294,102 +370,162 @@ const FinanceDashboard = ({ user }) => {
         </>
       )}
 
-      {activeTab === 'approvals' && (
+      {activeTab === "approvals" && (
         <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Pending Approvals</h3>
+          <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">
+              All Company Expenses
+            </h3>
+            <div className="flex items-center space-x-3">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                Total: {allExpenses.length}
+              </span>
+              <select
+                value={expenseFilter}
+                onChange={(e) => setExpenseFilter(e.target.value)}
+                className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg"
+              >
+                <option value="all">All</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="processing">Processing</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
           </div>
-          <div className="p-6">
-            {pendingExpenses.length > 0 ? (
-              <div className="space-y-4">
-                {pendingExpenses.map((expense) => (
-                  <div key={expense._id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{expense.title}</p>
-                      <p className="text-sm text-gray-500">
-                        by {expense.submittedBy.firstName} {expense.submittedBy.lastName}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {expenseService.formatDate(expense.createdAt)}
-                      </p>
-                      {expense.description && (
-                        <p className="text-sm text-gray-600 mt-1">{expense.description}</p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Employee
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Title
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Submitted
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    Amount
+                  </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {allExpenses.map((expense) => (
+                  <tr key={expense._id}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {expense.user?.firstName} {expense.user?.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {expense.user?.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {expense.title}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {expense.category}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {formatSubmissionDate(expense.submissionDateTime)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${expenseService.getStatusColor(
+                          expense.status
+                        )}`}
+                      >
+                        {expense.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold">
+                      {expenseService.formatCurrency(
+                        expense.convertedAmount,
+                        expense.company?.baseCurrency?.code
                       )}
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="text-right">
-                        <p className="font-medium text-gray-900">
-                          {expenseService.formatCurrency(expense.amount, expense.currency?.code)}
-                        </p>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${expenseService.getStatusColor(expense.status)}`}>
-                          {expense.status}
-                        </span>
-                      </div>
-                      <div className="flex space-x-2">
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                      <div className="flex items-center justify-center space-x-3">
                         <button
-                          onClick={() => handleApproveExpense(expense._id)}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                          onClick={() => handleViewReceipt(expense)}
+                          className="text-purple-600 hover:text-purple-900"
+                          title="View"
                         >
-                          <FiCheckCircle className="h-4 w-4 mr-1" />
-                          Approve
+                          <FiEye />
                         </button>
-                        <button
-                          onClick={() => handleRejectExpense(expense._id)}
-                          className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                        >
-                          <FiXCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </button>
+                        {(expense.status === "pending" ||
+                          expense.status === "processing") && (
+                          <>
+                            <button
+                              onClick={() => handleApprove(expense._id)}
+                              className="text-green-600 hover:text-green-900"
+                              title="Approve"
+                            >
+                              <FiCheckCircle />
+                            </button>
+                            <button
+                              onClick={() => handleReject(expense._id)}
+                              className="text-red-600 hover:text-red-900"
+                              title="Reject"
+                            >
+                              <FiXCircle />
+                            </button>
+                          </>
+                        )}
                       </div>
-                    </div>
-                  </div>
+                    </td>
+                  </tr>
                 ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">No pending approvals</p>
-            )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {activeTab === 'reports' && (
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900">Financial Reports</h3>
-              <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                <FiDownload className="h-4 w-4 mr-2" />
-                Generate Report
-              </button>
+      <Modal
+        isOpen={showReceiptViewer}
+        onClose={() => setShowReceiptViewer(false)}
+        title="Receipt Image"
+      >
+        {selectedExpense && (
+          <div className="flex justify-between items-start">
+            <div>
+              <p>
+                <strong>Expense:</strong> {selectedExpense.title}
+              </p>
+              <p>
+                <strong>Amount:</strong>{" "}
+                {expenseService.formatCurrency(
+                  selectedExpense.convertedAmount,
+                  selectedExpense.company?.baseCurrency?.code
+                )}
+              </p>
+              <p>
+                <strong>Category:</strong> {selectedExpense.category}
+              </p>
             </div>
+            {receiptImageSrc ? (
+              <img
+                src={receiptImageSrc}
+                alt="Receipt"
+                className="max-w-md h-auto"
+              />
+            ) : (
+              <p>No receipt available</p>
+            )}
           </div>
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <h4 className="font-medium text-gray-900 mb-2">Monthly Expense Report</h4>
-                <p className="text-sm text-gray-500 mb-4">Detailed breakdown of all expenses for the current month</p>
-                <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                  Download →
-                </button>
-              </div>
-              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <h4 className="font-medium text-gray-900 mb-2">Department Analysis</h4>
-                <p className="text-sm text-gray-500 mb-4">Expense analysis by department and category</p>
-                <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                  Download →
-                </button>
-              </div>
-              <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <h4 className="font-medium text-gray-900 mb-2">Budget Variance Report</h4>
-                <p className="text-sm text-gray-500 mb-4">Comparison of actual vs budgeted expenses</p>
-                <button className="text-purple-600 hover:text-purple-700 text-sm font-medium">
-                  Download →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

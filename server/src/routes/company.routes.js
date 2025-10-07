@@ -82,6 +82,9 @@ router.get('/', companyController.getCompany);
 router.put('/', validate(updateCompanySchema), companyController.updateCompany);
 router.get('/stats', companyController.getCompanyStats);
 
+// Add the new budget route here
+router.get('/budget', companyController.getCompanyBudget);
+
 // Currency routes
 router.get('/currencies', companyController.getSupportedCurrencies);
 router.get('/exchange-rates', companyController.getExchangeRates);

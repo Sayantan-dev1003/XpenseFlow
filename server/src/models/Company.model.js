@@ -77,6 +77,13 @@ const companySchema = new mongoose.Schema({
       }
     }
   },
+  budgetHistory: [{
+    year: { type: Number, required: true },
+    month: { type: Number, required: true },
+    allocated: { type: Number, required: true },
+    spent: { type: Number, default: 0 },
+    rollover: { type: Number, default: 0 }
+  }],
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -93,23 +100,33 @@ const companySchema = new mongoose.Schema({
 });
 
 // Pre-save middleware to ensure _id is set and set default categories
-companySchema.pre('save', function(next) {
-  // Ensure _id is set if not already present
-  if (!this._id) {
-    this._id = new mongoose.Types.ObjectId();
-  }
-  
-  if (this.isNew && (!this.settings.expenseCategories || this.settings.expenseCategories.length === 0)) {
-    this.settings.expenseCategories = [
-      { name: 'Travel', description: 'Travel and transportation expenses' },
-      { name: 'Meals', description: 'Business meals and entertainment' },
-      { name: 'Office Supplies', description: 'Office equipment and supplies' },
-      { name: 'Software', description: 'Software licenses and subscriptions' },
-      { name: 'Training', description: 'Training and professional development' },
-      { name: 'Marketing', description: 'Marketing and advertising expenses' },
-      { name: 'Utilities', description: 'Utilities and communication expenses' },
-      { name: 'Other', description: 'Other business expenses' }
-    ];
+companySchema.pre('save', function (next) {
+  if (this.isNew) {
+    // Set default expense categories if they don't exist
+    if (!this.settings.expenseCategories || this.settings.expenseCategories.length === 0) {
+      this.settings.expenseCategories = [
+        { name: 'Travel', description: 'Travel and transportation expenses' },
+        { name: 'Meals', description: 'Business meals and entertainment' },
+        { name: 'Office Supplies', description: 'Office equipment and supplies' },
+        { name: 'Software', description: 'Software licenses and subscriptions' },
+        { name: 'Training', description: 'Training and professional development' },
+        { name: 'Marketing', description: 'Marketing and advertising expenses' },
+        { name: 'Utilities', description: 'Utilities and communication expenses' },
+        { name: 'Other', description: 'Other business expenses' }
+      ];
+    }
+
+    // Initialize budget history for the current month
+    if (!this.budgetHistory || this.budgetHistory.length === 0) {
+      const now = new Date();
+      this.budgetHistory.push({
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        allocated: this.settings.expenseLimits.monthlyLimit,
+        spent: 0,
+        rollover: 0
+      });
+    }
   }
   next();
 });
