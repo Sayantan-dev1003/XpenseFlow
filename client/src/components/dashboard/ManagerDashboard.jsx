@@ -11,11 +11,13 @@ import {
 } from "react-icons/fi";
 import { useAuth } from "../../hooks/useAuth";
 import expenseService from "../../api/expenseService";
+import companyService from "../../api/companyService";
 import { toast } from "react-toastify";
 
 const ManagerDashboard = ({ user }) => {
   const { handleAuthFailure, logout } = useAuth();
   const [recentExpenses, setRecentExpenses] = useState([]);
+  const [company, setCompany] = useState(null);
   const [showReceiptViewer, setShowReceiptViewer] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [receiptImageSrc, setReceiptImageSrc] = useState(null);
@@ -89,24 +91,21 @@ const ManagerDashboard = ({ user }) => {
     };
   }, [showReceiptViewer, selectedExpense]);
 
-  useEffect(() => {
-    loadDashboardData();
-  }, [expenseFilter]);
-
-  const currentCount = recentExpenses.length;
-  const currentCountLabel =
-    expenseFilter === "all"
-      ? "Total"
-      : expenseFilter.charAt(0).toUpperCase() + expenseFilter.slice(1);
-
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await expenseService.getAllExpenses({
-        status: expenseFilter !== "all" ? expenseFilter : undefined,
-      });
-      if (response.data?.expenses) {
-        setRecentExpenses(response.data.expenses);
+      const [expenseResponse, companyResponse] = await Promise.all([
+        expenseService.getAllExpenses({
+          status: expenseFilter !== "all" ? expenseFilter : undefined,
+        }),
+        companyService.getCompany(),
+      ]);
+
+      if (expenseResponse.data?.expenses) {
+        setRecentExpenses(expenseResponse.data.expenses);
+      }
+      if (companyResponse.data?.company) {
+        setCompany(companyResponse.data.company);
       }
     } catch (error) {
       console.error("Failed to load manager dashboard data:", error);
@@ -117,6 +116,16 @@ const ManagerDashboard = ({ user }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [expenseFilter]);
+
+  const currentCount = recentExpenses.length;
+  const currentCountLabel =
+    expenseFilter === "all"
+      ? "Total"
+      : expenseFilter.charAt(0).toUpperCase() + expenseFilter.slice(1);
 
   const handleApprove = async (expenseId) => {
     try {
@@ -156,6 +165,8 @@ const ManagerDashboard = ({ user }) => {
 
   const role = user.role;
   const capitalizedRole = role.charAt(0).toUpperCase() + role.slice(1);
+
+  const baseCurrencyCode = company?.baseCurrency?.code;
 
   return (
     <div className="p-6">
@@ -284,7 +295,7 @@ const ManagerDashboard = ({ user }) => {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
                         {expenseService.formatCurrency(
                           expense.convertedAmount,
-                          expense.company?.baseCurrency?.code || "USD"
+                          baseCurrencyCode
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
@@ -341,52 +352,75 @@ const ManagerDashboard = ({ user }) => {
         title="Receipt Image"
       >
         {selectedExpense && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-start">
-              <div className="text-sm text-gray-600">
-                <p className="text-lg">
-                  <strong>Expense:</strong> {selectedExpense.title}
-                </p>
-                <p className="text-lg">
-                  <strong>Amount:</strong>{" "}
-                  {expenseService.formatCurrency(
-                    selectedExpense.convertedAmount,
-                    selectedExpense.company?.baseCurrency?.code
-                  )}
-                </p>
-                <p className="text-lg">
-                  <strong>Category:</strong> {selectedExpense.category}
-                </p>
-                <p className="text-lg">
-                  <strong>Submitted:</strong>{" "}
-                  {formatSubmissionDate(
-                    selectedExpense.submissionDateTime ||
-                      selectedExpense.createdAt
-                  )}
-                </p>
-              </div>
-              {receiptImageSrc ? (
-                <img
-                  src={receiptImageSrc}
-                  alt="Receipt"
-                  className="max-w-full h-auto rounded-lg shadow-sm"
-                  style={{ maxHeight: "500px" }}
-                />
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <FiUpload className="mx-auto h-12 w-12 mb-2" />
-                  <p>Receipt image not available</p>
+          <div className="flex justify-between items-start gap-6 text-gray-500">
+            <div>
+              <p>
+                <strong>Submitted By:</strong> {selectedExpense.user?.firstName}{" "}
+                {selectedExpense.user?.lastName}
+              </p>
+              <p>
+                <strong>Email:</strong> {selectedExpense.user?.email}
+              </p>
+              <p>
+                <strong>Status:</strong> {selectedExpense.status}
+              </p>
+              <p>
+                <strong>Title:</strong> {selectedExpense.title}
+              </p>
+              <p>
+                <strong>Expense:</strong>{" "}
+                {expenseService.formatCurrency(
+                  selectedExpense.convertedAmount,
+                  baseCurrencyCode
+                )}
+              </p>
+              <p>
+                <strong>Category:</strong> {selectedExpense.category}
+              </p>
+              <p>
+                <strong>Description:</strong> {selectedExpense.description}
+              </p>
+              <p>
+                <strong>Expense Date and Time:</strong>{" "}
+                {formatSubmissionDate(selectedExpense.expenseDateTime)}
+              </p>
+              <p>
+                <strong>Submission Date and Time:</strong>{" "}
+                {formatSubmissionDate(selectedExpense.submissionDateTime)}
+              </p>
+              {(selectedExpense.status === "pending" ||
+                selectedExpense.status === "processing") && (
+                <div className="mt-4 flex items-center space-x-4">
+                  <button
+                    onClick={() => {
+                      handleApprove(selectedExpense._id);
+                      setShowReceiptViewer(false);
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleReject(selectedExpense._id);
+                      setShowReceiptViewer(false);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                  >
+                    Reject
+                  </button>
                 </div>
               )}
             </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowReceiptViewer(false)}
-                className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 transition-colors"
-              >
-                Close
-              </button>
-            </div>
+            {receiptImageSrc ? (
+              <img
+                src={receiptImageSrc}
+                alt="Receipt"
+                className="max-w-md h-auto rounded-lg shadow-md"
+              />
+            ) : (
+              <p>No receipt available</p>
+            )}
           </div>
         )}
       </Modal>

@@ -55,23 +55,20 @@ class ExpenseController {
         const teamMembers = await User.find({ manager: req.user._id });
         const teamMemberIds = teamMembers.map(member => member._id);
         filters.submittedBy = { $in: teamMemberIds };
-      } else if (req.user.role !== 'admin') {
-        // For employees, only show their own expenses.
+      } else if (req.user.role !== 'admin' && req.user.role !== 'finance') {
         filters.submittedBy = req.user._id;
       }
-
+      
       // Add status filter if provided
       if (status && status !== 'all') {
         filters.status = status;
       } else if (status === 'all') {
-        // When status is 'all', explicitly include all possible statuses
         filters.status = { $in: ['pending', 'approved', 'processing', 'rejected'] };
       }
 
       // Create and execute the query with proper error handling
       const expenses = await Expense.find(filters)
         .populate({
-          // 1. FIXED: Changed path from 'userId' to the correct schema path 'submittedBy'
           path: 'submittedBy',
           select: 'firstName lastName email role company',
           model: 'User'
@@ -92,10 +89,9 @@ class ExpenseController {
           message: 'No expenses found'
         });
       }
-
-      // 2. FIXED: Map data using 'submittedBy' to create the 'user' object the frontend expects
+      
       const mappedExpenses = expenses.map(expense => {
-        const user = expense.submittedBy; // Use the correctly populated data
+        const user = expense.submittedBy;
         const mappedExpense = {
           ...expense,
           user: user ? {
@@ -106,9 +102,9 @@ class ExpenseController {
             role: user.role || '',
             company: user.company || null
           } : null,
-          userId: user ? user._id : null // Ensure userId is also present
+          userId: user ? user._id : null
         };
-        delete mappedExpense.submittedBy; // Clean up original field to avoid confusion
+        delete mappedExpense.submittedBy;
         return mappedExpense;
       });
 
@@ -119,10 +115,10 @@ class ExpenseController {
       });
     } catch (error) {
       winston.error('Error fetching expenses:', error);
-      return res.status(500).json({
+      return res.status(500).json({ 
         success: false,
         message: 'Failed to fetch expenses',
-        error: error.message
+        error: error.message 
       });
     }
   }
@@ -697,7 +693,7 @@ class ExpenseController {
       if (!req.user.isAdmin() && req.user.role !== 'finance') {
         baseQuery.submittedBy = userId;
       }
-
+      
       const statsPromise = Expense.aggregate([
         { $match: baseQuery },
         {
@@ -721,24 +717,23 @@ class ExpenseController {
         { $sort: { totalAmount: -1 } },
         { $limit: 10 }
       ]);
-
-      // New: Calculate total approved amount separately
+      
       const approvedAmountPromise = Expense.aggregate([
-        { $match: { ...baseQuery, status: 'approved' } },
-        {
-          $group: {
-            _id: null,
-            totalApprovedAmount: { $sum: '$convertedAmount' }
+          { $match: { ...baseQuery, status: 'approved' } },
+          {
+              $group: {
+                  _id: null,
+                  totalApprovedAmount: { $sum: '$convertedAmount' }
+              }
           }
-        }
       ]);
 
       const [stats, categoryStats, approvedAmountResult] = await Promise.all([
-        statsPromise,
-        categoryStatsPromise,
-        approvedAmountPromise
+          statsPromise,
+          categoryStatsPromise,
+          approvedAmountPromise
       ]);
-
+      
       const totalApprovedAmount = approvedAmountResult[0]?.totalApprovedAmount || 0;
 
       const result = {
@@ -749,14 +744,14 @@ class ExpenseController {
           rejected: 0,
           processing: 0,
           totalAmount: 0,
-          totalApprovedAmount: totalApprovedAmount // Add the new value here
+          totalApprovedAmount: totalApprovedAmount
         },
         categories: categoryStats
       };
 
       stats.forEach(stat => {
         if (result.summary.hasOwnProperty(stat._id)) {
-          result.summary[stat._id] = stat.count;
+            result.summary[stat._id] = stat.count;
         }
         result.summary.total += stat.count;
         result.summary.totalAmount += stat.totalAmount;
