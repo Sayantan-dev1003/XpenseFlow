@@ -96,14 +96,13 @@ class ExpenseService {
     return response.data;
   }
 
-  async processExpense(expenseId, status, reason = '') {
+  async processExpense(expenseId, status) {
     if (!expenseId) {
       throw new Error('Expense ID is required');
     }
     
     const payload = {
-      status,
-      reason: reason || undefined
+      action: status
     };
     
     const response = await this.api.post(`/${expenseId}/process`, payload);
@@ -132,13 +131,6 @@ class ExpenseService {
 
   async deleteExpense(expenseId) {
     const response = await this.api.delete(`/${expenseId}`);
-    return response.data;
-  }
-
-  async processExpense(expenseId, action) {
-    const response = await this.api.post(`/${expenseId}/process`, {
-      action,
-    });
     return response.data;
   }
 

@@ -635,21 +635,27 @@ class ExpenseController {
   async getExpenseStats(req, res) {
     try {
       const companyId = req.user.company;
-      const userId = req.user.id;
+      const userId = req.user._id;
       const { period = 'month' } = req.query;
 
       let dateFilter = {};
       const now = new Date();
-
+      let startDate;
       switch (period) {
         case 'week':
-          dateFilter = { $gte: new Date(now.setDate(now.getDate() - 7)) };
+          startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7);
+          dateFilter = { $gte: startDate };
           break;
         case 'month':
-          dateFilter = { $gte: new Date(now.setMonth(now.getMonth() - 1)) };
+          startDate = new Date();
+          startDate.setMonth(startDate.getMonth() - 1);
+          dateFilter = { $gte: startDate };
           break;
         case 'year':
-          dateFilter = { $gte: new Date(now.setFullYear(now.getFullYear() - 1)) };
+          startDate = new Date();
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          dateFilter = { $gte: startDate };
           break;
       }
 
@@ -660,7 +666,11 @@ class ExpenseController {
       if (!req.user.isAdmin() && req.user.role !== 'finance') {
         baseQuery.submittedBy = userId;
       }
-      
+
+      // Debug logging
+      console.log('[ExpenseStats] baseQuery:', JSON.stringify(baseQuery));
+      console.log('[ExpenseStats] period:', period);
+
       const statsPromise = Expense.aggregate([
         { $match: baseQuery },
         {
@@ -700,6 +710,11 @@ class ExpenseController {
           categoryStatsPromise,
           approvedAmountPromise
       ]);
+
+      // Debug logging
+      console.log('[ExpenseStats] stats:', stats);
+      console.log('[ExpenseStats] categoryStats:', categoryStats);
+      console.log('[ExpenseStats] approvedAmountResult:', approvedAmountResult);
       
       const totalApprovedAmount = approvedAmountResult[0]?.totalApprovedAmount || 0;
 

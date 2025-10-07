@@ -60,13 +60,17 @@ const FinanceDashboard = ({ user }) => {
     setLoading((prev) => ({ ...prev, stats: true }));
     try {
       const [expenseStatsRes, budgetRes, companyRes] = await Promise.all([
+        // Use a wider window so stats are visible even if this month's is empty
         expenseService.getExpenseStats({ period: "month" }),
         companyService.getCompanyBudget(),
         companyService.getCompany(),
       ]);
+      console.log('Raw expenseStatsRes:', expenseStatsRes);
+      // Defensive: support both .data.stats.summary and .data.summary
+      let summary = expenseStatsRes?.data?.stats?.summary || expenseStatsRes?.data?.summary || {};
       setCompany(companyRes.data.company);
       setStats({
-        expenses: expenseStatsRes.data.stats.summary,
+        expenses: summary,
         budget: budgetRes.data.budget,
       });
     } catch (error) {
@@ -196,22 +200,24 @@ const FinanceDashboard = ({ user }) => {
     return () => {
       if (receiptImageSrc) URL.revokeObjectURL(receiptImageSrc);
     };
-  }, [showReceiptViewer, selectedExpense]);
+  }, [showReceiptViewer, selectedExpense, receiptImageSrc]);
 
-  const StatCard = ({ title, value, icon: Icon, color, subtitle }) => (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center">
-        <div className={`flex-shrink-0 p-3 rounded-lg ${color}`}>
-          <Icon className="h-6 w-6 text-white" />
-        </div>
-        <div className="ml-4">
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-semibold text-gray-900">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+  const StatCard = ({ title, value, icon, color }) => {
+    const IconComponent = icon;
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex items-center">
+          <div className={`flex-shrink-0 p-3 rounded-lg ${color}`}>
+            <IconComponent className="h-6 w-6 text-white" />
+          </div>
+          <div className="ml-4">
+            <p className="text-sm font-medium text-gray-500">{title}</p>
+            <p className="text-2xl font-semibold text-gray-900">{value}</p>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const capitalizedRole =
     user.role.charAt(0).toUpperCase() + user.role.slice(1);
@@ -267,7 +273,7 @@ const FinanceDashboard = ({ user }) => {
           </button>
         </nav>
       </div>
-
+      {console.log("Stats: ", stats)}
       {activeTab === "overview" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -276,7 +282,6 @@ const FinanceDashboard = ({ user }) => {
               value={stats.expenses?.approved || 0}
               icon={FiFileText}
               color="bg-blue-500"
-              subtitle="This month"
             />
             <StatCard
               title="Pending Approval"
@@ -286,7 +291,6 @@ const FinanceDashboard = ({ user }) => {
               }
               icon={FiClock}
               color="bg-yellow-500"
-              subtitle="Awaiting review"
             />
             <StatCard
               title="Monthly Spend"
@@ -296,7 +300,6 @@ const FinanceDashboard = ({ user }) => {
               )}
               icon={FiDollarSign}
               color="bg-green-500"
-              subtitle="Approved expenses"
             />
             <StatCard
               title="Budget Remaining"
