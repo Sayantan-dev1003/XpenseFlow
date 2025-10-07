@@ -198,31 +198,37 @@ expenseSchema.pre('save', async function(next) {
 });
 
 // Instance method to add approval with dual approval logic
-expenseSchema.methods.addApproval = function(approverId, approverRole, action, comment = '') {
+expenseSchema.methods.addApproval = function(approverId, approverRole, action) {
   // Add to approval history
   this.approvalHistory.push({
     approver: approverId,
     action: action,
-    comment: comment,
-    level: 0,
     timestamp: new Date()
   });
   
   if (action === 'rejected') {
     // Any rejection immediately rejects the expense
     this.status = 'rejected';
+    // Also record who rejected it and why
+    if (approverRole === 'manager') {
+      this.approvals.manager.approved = false;
+      this.approvals.manager.approver = approverId;
+      this.approvals.manager.timestamp = new Date();
+    } else if (approverRole === 'finance') {
+      this.approvals.finance.approved = false;
+      this.approvals.finance.approver = approverId;
+      this.approvals.finance.timestamp = new Date();
+    }
   } else if (action === 'approved') {
     // Update role-specific approval
     if (approverRole === 'manager') {
       this.approvals.manager.approved = true;
       this.approvals.manager.approver = approverId;
       this.approvals.manager.timestamp = new Date();
-      this.approvals.manager.comment = comment;
     } else if (approverRole === 'finance') {
       this.approvals.finance.approved = true;
       this.approvals.finance.approver = approverId;
       this.approvals.finance.timestamp = new Date();
-      this.approvals.finance.comment = comment;
     }
     
     // Check if both manager and finance have approved

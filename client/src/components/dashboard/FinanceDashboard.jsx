@@ -85,13 +85,12 @@ const FinanceDashboard = ({ user }) => {
       });
       const expenses = allExpensesRes.data.expenses || [];
       setAllExpenses(expenses);
-      if (expenseFilter === "all") {
-        setPendingExpenses(
-          expenses.filter(
-            (exp) => exp.status === "pending" || exp.status === "processing"
-          )
-        );
-      }
+      // Always update pending expenses for the overview tab regardless of filter
+      setPendingExpenses(
+        expenses.filter(
+          (exp) => exp.status === "pending" || exp.status === "processing"
+        )
+      );
     } catch (error) {
       console.error("Failed to load expenses:", error);
       toast.error("Failed to load expenses.");
@@ -102,11 +101,8 @@ const FinanceDashboard = ({ user }) => {
 
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
-
-  useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses]);
+  }, [fetchStats, fetchExpenses]);
 
   const handleApprove = async (expenseId) => {
     try {
@@ -503,12 +499,14 @@ const FinanceDashboard = ({ user }) => {
               <div className="text-center py-16">
                 <FiFileText className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">
-                  {expenseFilter === "all"
-                    ? "No company expenses found"
-                    : `No ${expenseFilter} company expenses`}
+                  {`No ${
+                    expenseFilter === "all" ? "" : expenseFilter
+                  } company expenses`}
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Try selecting a different filter.
+                  {expenseFilter === "all"
+                    ? "There are no expenses to display."
+                    : "Try selecting a different filter."}
                 </p>
               </div>
             )}
