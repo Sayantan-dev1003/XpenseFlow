@@ -110,41 +110,14 @@ const expenseSchema = new mongoose.Schema({
     manager: {
       approved: { type: Boolean, default: false },
       approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      timestamp: Date,
-      comment: String
+      timestamp: Date
     },
     finance: {
       approved: { type: Boolean, default: false },
       approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      timestamp: Date,
-      comment: String
+      timestamp: Date
     }
   },
-  approvalHistory: [{
-    approver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true
-    },
-    action: {
-      type: String,
-      enum: ['approved', 'rejected'],
-      required: true
-    },
-    comment: {
-      type: String,
-      trim: true,
-      maxlength: [500, 'Comment cannot exceed 500 characters']
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now
-    },
-    level: {
-      type: Number,
-      required: true
-    }
-  }]
 }, {
   timestamps: true,
   toJSON: { virtuals: true },
