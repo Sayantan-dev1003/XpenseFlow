@@ -1,263 +1,441 @@
-# AuthFlow - Complete Authentication System
+# XpenseFlow - Enterprise Expense Management System
 
-A comprehensive, enterprise-grade authentication system built with React, Node.js, Express, and MongoDB. Features multi-step login with OTP verification, Google OAuth, account lockout protection, and secure session management.
+A comprehensive, full-stack expense management system built with React, Node.js, Express, and MongoDB. XpenseFlow provides enterprise-grade expense tracking, approval workflows, OCR receipt processing, and multi-role user management with advanced security features.
 
-## 🚀 Features
+## 🌟 Product Overview
 
-### Core Authentication
-- ✅ **Manual User Registration & Login** - Email/password authentication with validation
-- ✅ **Multi-Step Login Process** - Enhanced security with OTP verification for every login
-- ✅ **Google OAuth Integration** - One-click social login with Google
-- ✅ **OTP Verification** - Email and SMS verification for enhanced security
-- ✅ **Password Reset** - Secure password reset via email
-- ✅ **JWT Authentication** - Secure token-based authentication with refresh tokens
-- ✅ **Session Management** - Automatic token refresh and secure logout
-- ✅ **Account Lockout Protection** - Temporary lockout after failed login attempts
+XpenseFlow is a modern expense management solution designed for businesses of all sizes. It streamlines the entire expense lifecycle from submission to approval, featuring intelligent receipt processing, multi-currency support, and role-based access control.
 
-### Security Features
-- ✅ **Password Hashing** - bcrypt with salt rounds for secure password storage
-- ✅ **Rate Limiting** - Protection against brute force attacks
-- ✅ **Account Lockout** - Temporary account lockout after failed attempts
-- ✅ **Input Validation** - Server-side validation with Joi
-- ✅ **CORS Protection** - Configured CORS for secure cross-origin requests
-- ✅ **Environment Variables** - Secure configuration management
-- ✅ **HttpOnly Cookies** - Secure token storage with HttpOnly cookies
-- ✅ **Token Rotation** - Refresh token rotation for enhanced security
-- ✅ **Helmet Security** - Security headers with Helmet.js
-- ✅ **Comprehensive Logging** - Winston-based logging system
-- ✅ **Error Handling** - Centralized error handling middleware
+### Key Value Propositions
+- **Automated Receipt Processing**: OCR-powered receipt scanning with automatic data extraction
+- **Multi-Role Workflow**: Seamless approval process with manager and finance team coordination  
+- **Real-time Currency Conversion**: Automatic currency detection and conversion
+- **Enterprise Security**: JWT authentication, rate limiting, and comprehensive audit trails
+- **Responsive Design**: Mobile-first interface for expense submission on-the-go
+- **Scalable Architecture**: Microservices-ready with Docker containerization
 
-### User Experience
-- ✅ **Responsive Design** - Mobile-first design with Tailwind CSS
-- ✅ **Real-time Notifications** - Toast notifications for user feedback
-- ✅ **Loading States** - Proper loading indicators throughout the app
-- ✅ **Error Handling** - Comprehensive error handling and user feedback
-- ✅ **Protected Routes** - Route protection based on authentication status
-- ✅ **Email Verification** - Email verification for manual signups
-- ✅ **Account Linking** - Link social accounts to existing manual accounts
-- ✅ **Step-by-Step Login Flow** - Intuitive multi-step authentication process
-- ✅ **Forgot Password Flow** - Seamless password recovery experience
+## 🚀 Features & Capabilities
 
-## 🏗️ Architecture
+### Core Expense Management
+- ✅ **Expense Submission** - Easy expense creation with receipt upload
+- ✅ **OCR Receipt Processing** - Automatic data extraction from receipt images using Tesseract.js
+- ✅ **Multi-Currency Support** - Real-time currency conversion with exchange rates
+- ✅ **Category Management** - Customizable expense categories per company
+- ✅ **Expense Tracking** - Comprehensive expense history and status tracking
+- ✅ **Budget Management** - Monthly budget allocation and spending tracking
 
-### Backend (Node.js + Express)
+### Advanced Approval Workflows
+- ✅ **Dual Approval System** - Manager and finance team approval requirements
+- ✅ **Role-Based Access Control** - Admin, Manager, Employee, and Finance roles
+- ✅ **Approval Notifications** - Real-time notifications for pending approvals
+- ✅ **Workflow Automation** - Configurable approval thresholds and auto-approval
+- ✅ **Audit Trail** - Complete history of all expense actions and approvals
+
+### Authentication & Security
+- ✅ **Multi-Step Authentication** - Enhanced login with OTP verification
+- ✅ **Google OAuth Integration** - Single sign-on with Google accounts
+- ✅ **JWT Token Management** - Secure token-based authentication with refresh tokens
+- ✅ **Account Security** - Rate limiting, account lockout, and password policies
+- ✅ **Session Management** - Secure session handling with HTTP-only cookies
+- ✅ **Input Validation** - Comprehensive server-side validation with Joi
+
+### User & Company Management
+- ✅ **Multi-Tenant Architecture** - Support for multiple companies
+- ✅ **User Role Management** - Hierarchical user roles and permissions
+- ✅ **Employee Onboarding** - Streamlined user creation and company setup
+- ✅ **Profile Management** - User profile updates and password management
+- ✅ **Team Management** - Manager-employee relationships and team views
+
+### Technical Features
+- ✅ **Responsive Design** - Mobile-first UI with Tailwind CSS
+- ✅ **Real-time Notifications** - Toast notifications and status updates
+- ✅ **File Upload & Storage** - Secure receipt image storage and processing
+- ✅ **API Documentation** - Comprehensive REST API with proper error handling
+- ✅ **Docker Support** - Containerized deployment with Docker Compose
+- ✅ **Logging & Monitoring** - Winston-based logging with security event tracking
+
+## 🏗️ System Architecture
+
+### Technology Stack
+
+#### Frontend (React + Vite)
+- **React 19.1.1** - Modern React with hooks and context
+- **Vite** - Fast build tool and development server
+- **Tailwind CSS 4.1.13** - Utility-first CSS framework
+- **Framer Motion** - Smooth animations and transitions
+- **React Router DOM** - Client-side routing
+- **Axios** - HTTP client for API communication
+- **Tesseract.js** - Client-side OCR processing
+- **React Toastify** - Notification system
+
+#### Backend (Node.js + Express)
+- **Node.js** - JavaScript runtime
+- **Express 5.1.0** - Web application framework
+- **MongoDB + Mongoose** - NoSQL database with ODM
+- **JWT** - JSON Web Token authentication
+- **Passport.js** - Authentication middleware
+- **Multer** - File upload handling
+- **Winston** - Logging framework
+- **Helmet** - Security headers
+- **Rate Limiting** - DDoS protection
+
+#### DevOps & Deployment
+- **Docker & Docker Compose** - Containerization
+- **Nginx** - Reverse proxy and load balancing
+- **MongoDB Atlas** - Cloud database hosting
+- **Vercel** - Frontend deployment platform
+
+### Project Structure
+
 ```
-server/
-├── src/
-│   ├── config/          # Database and OAuth configuration
-│   ├── controllers/      # Request handlers
-│   ├── middleware/       # Authentication and error middleware
-│   ├── models/          # MongoDB schemas
-│   ├── routes/          # API route definitions
-│   ├── services/        # Business logic (OTP, Email, SMS)
-│   └── utils/           # Helper functions
-├── logs/                # Application logs
-├── env.example          # Environment variables template
-├── server.js            # Main server file
-└── package.json
+xpenseflow/
+├── client/                          # Frontend React Application
+│   ├── src/
+│   │   ├── api/                    # API service functions
+│   │   │   ├── authService.js      # Authentication API calls
+│   │   │   ├── companyService.js   # Company management API
+│   │   │   ├── expenseService.js   # Expense management API
+│   │   │   ├── userService.js      # User management API
+│   │   │   └── workflowService.js  # Workflow API calls
+│   │   ├── components/             # Reusable UI components
+│   │   │   ├── auth/              # Authentication components
+│   │   │   │   ├── AdminDetailsStep.jsx
+│   │   │   │   ├── CompanyDetailsStep.jsx
+│   │   │   │   ├── ForgotPassword.jsx
+│   │   │   │   └── SimpleLogin.jsx
+│   │   │   ├── common/            # Common UI components
+│   │   │   │   ├── Button.jsx
+│   │   │   │   ├── Input.jsx
+│   │   │   │   ├── Modal.jsx
+│   │   │   │   └── Spinner.jsx
+│   │   │   ├── dashboard/         # Role-based dashboards
+│   │   │   │   ├── AdminDashboard.jsx
+│   │   │   │   ├── EmployeeDashboard.jsx
+│   │   │   │   ├── FinanceDashboard.jsx
+│   │   │   │   ├── ManagerDashboard.jsx
+│   │   │   │   ├── RoleBasedDashboard.jsx
+│   │   │   │   ├── UserCreationForm.jsx
+│   │   │   │   └── UserList.jsx
+│   │   │   ├── expense/           # Expense management components
+│   │   │   │   ├── ExpenseSubmissionForm.jsx
+│   │   │   │   └── ReceiptUpload.jsx
+│   │   │   ├── landing/           # Landing page components
+│   │   │   │   ├── CTASection.jsx
+│   │   │   │   ├── FAQSection.jsx
+│   │   │   │   ├── FeaturesSection.jsx
+│   │   │   │   ├── Footer.jsx
+│   │   │   │   ├── HeroSection.jsx
+│   │   │   │   ├── Navbar.jsx
+│   │   │   │   ├── TestimonialsSection.jsx
+│   │   │   │   └── WorkflowSection.jsx
+│   │   │   └── layout/            # Layout components
+│   │   │       └── ProtectedRoute.jsx
+│   │   ├── context/               # React Context providers
+│   │   │   ├── AuthContext.jsx    # Authentication state management
+│   │   │   └── RegistrationContext.jsx
+│   │   ├── hooks/                 # Custom React hooks
+│   │   │   └── useAuth.js
+│   │   ├── pages/                 # Page components
+│   │   │   ├── ChangePasswordPage.jsx
+│   │   │   ├── ContactSupportPage.jsx
+│   │   │   ├── ForgotPasswordPage.jsx
+│   │   │   ├── LandingPage.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── NotFoundPage.jsx
+│   │   │   └── RegisterPage.jsx
+│   │   ├── services/              # Client-side services
+│   │   │   └── ocrService.js      # OCR processing service
+│   │   ├── App.jsx                # Main application component
+│   │   └── main.jsx               # Application entry point
+│   ├── public/                    # Static assets
+│   ├── Dockerfile                 # Frontend container configuration
+│   ├── nginx.conf                 # Nginx configuration for production
+│   ├── package.json               # Frontend dependencies
+│   ├── vite.config.js             # Vite configuration
+│   └── vercel.json                # Vercel deployment configuration
+├── server/                        # Backend Node.js Application
+│   ├── src/
+│   │   ├── config/                # Configuration files
+│   │   │   ├── db.js              # Database connection
+│   │   │   ├── index.js           # Environment configuration
+│   │   │   └── passport.js        # Passport authentication setup
+│   │   ├── controllers/           # Request handlers
+│   │   │   ├── auth.controller.js # Authentication logic
+│   │   │   ├── company.controller.js # Company management
+│   │   │   ├── expense.controller.js # Expense management
+│   │   │   ├── user.controller.js # User management
+│   │   │   └── workflow.controller.js # Workflow management
+│   │   ├── middleware/            # Express middleware
+│   │   │   ├── auth.middleware.js # Authentication middleware
+│   │   │   ├── error.middleware.js # Error handling
+│   │   │   ├── formdata.middleware.js # File upload handling
+│   │   │   ├── rateLimiter.js     # Rate limiting
+│   │   │   ├── validation.js      # Input validation schemas
+│   │   │   └── validation.middleware.js
+│   │   ├── models/                # MongoDB schemas
+│   │   │   ├── ApprovalWorkflow.model.js # Workflow definitions
+│   │   │   ├── Company.model.js   # Company data model
+│   │   │   ├── Expense.model.js   # Expense data model
+│   │   │   ├── Token.model.js     # Token management
+│   │   │   └── User.model.js      # User data model
+│   │   ├── routes/                # API route definitions
+│   │   │   ├── auth.routes.js     # Authentication endpoints
+│   │   │   ├── company.routes.js  # Company management endpoints
+│   │   │   ├── expense.routes.js  # Expense management endpoints
+│   │   │   ├── index.js           # Route aggregation
+│   │   │   ├── user.routes.js     # User management endpoints
+│   │   │   └── workflow.routes.js # Workflow endpoints
+│   │   ├── services/              # Business logic services
+│   │   │   ├── budget.service.js  # Budget management
+│   │   │   ├── currency.service.js # Currency conversion
+│   │   │   ├── notification.service.js # Notification system
+│   │   │   └── receipt.service.js # Receipt processing
+│   │   └── utils/                 # Utility functions
+│   │       ├── generateTokens.js  # Token generation utilities
+│   │       └── logger.js          # Logging configuration
+│   ├── Dockerfile                 # Backend container configuration
+│   ├── package.json               # Backend dependencies
+│   └── server.js                  # Main server file
+├── nginx/                         # Nginx configuration
+│   └── nginx.conf                 # Production nginx setup
+├── docker-compose.yml             # Multi-container orchestration
+├── package.json                   # Root package configuration
+├── setup.bat                      # Windows setup script
+├── setup.sh                       # Unix setup script
+└── README.md                      # This documentation
 ```
 
-### Frontend (React + Vite)
-```
-client/
-├── src/
-│   ├── api/             # API service functions
-│   ├── components/      # Reusable UI components
-│   │   ├── auth/        # Authentication components
-│   │   ├── common/      # Common UI components
-│   │   └── layout/      # Layout components
-│   ├── context/         # React Context for state management
-│   ├── hooks/           # Custom React hooks
-│   ├── pages/           # Page components
-│   ├── App.jsx          # Main application component
-│   └── main.jsx         # Application entry point
-├── public/              # Static assets
-├── env.example          # Environment variables template
-└── package.json
+## 📊 Database Schema
+
+### User Model
+```javascript
+{
+  _id: ObjectId,
+  firstName: String,
+  lastName: String,
+  email: String (unique),
+  password: String (hashed),
+  phoneNumber: String,
+  company: ObjectId (ref: Company),
+  role: ['admin', 'manager', 'employee', 'finance'],
+  manager: ObjectId (ref: User),
+  employeeId: String,
+  loginAttempts: Number,
+  lockUntil: Date,
+  isActive: Boolean,
+  timestamps: true
+}
 ```
 
-## 🛠️ Installation & Setup
+### Company Model
+```javascript
+{
+  _id: ObjectId,
+  name: String,
+  country: String,
+  baseCurrency: {
+    code: String,
+    name: String,
+    symbol: String
+  },
+  address: Object,
+  industry: String,
+  settings: {
+    expenseCategories: Array,
+    expenseLimits: Object,
+    approvalSettings: Object
+  },
+  budgetHistory: Array,
+  createdBy: ObjectId (ref: User),
+  timestamps: true
+}
+```
+
+### Expense Model
+```javascript
+{
+  _id: ObjectId,
+  title: String,
+  description: String,
+  amount: Number,
+  currency: Object,
+  convertedAmount: Number,
+  exchangeRate: Number,
+  category: String,
+  expenseDateTime: Date,
+  submissionDateTime: Date,
+  receipt: {
+    image: Buffer,
+    ocrData: Object
+  },
+  submittedBy: ObjectId (ref: User),
+  company: ObjectId (ref: Company),
+  status: ['pending', 'approved', 'rejected', 'processing'],
+  approvals: {
+    manager: Object,
+    finance: Object
+  },
+  timestamps: true
+}
+```
+
+## 🔐 Security Features
+
+### Authentication & Authorization
+- **Multi-Step Login Process**: Credential verification → OTP method selection → OTP verification
+- **JWT Token Management**: Short-lived access tokens (15 minutes) with refresh tokens (7 days)
+- **Google OAuth Integration**: Seamless social login with account linking
+- **Role-Based Access Control**: Granular permissions based on user roles
+- **Account Security**: Rate limiting, account lockout after failed attempts
+
+### Data Protection
+- **Password Security**: bcrypt hashing with 12 salt rounds
+- **Input Validation**: Joi-based server-side validation
+- **SQL Injection Protection**: MongoDB with parameterized queries
+- **XSS Protection**: Helmet.js security headers
+- **CORS Configuration**: Secure cross-origin resource sharing
+
+### Infrastructure Security
+- **HTTP-Only Cookies**: Secure token storage
+- **Rate Limiting**: Protection against brute force attacks
+- **Security Headers**: Comprehensive security headers with Helmet
+- **Environment Variables**: Secure configuration management
+- **Audit Logging**: Complete security event tracking
+
+## 🚀 Installation & Setup
 
 ### Prerequisites
 - Node.js (v16 or higher)
-- MongoDB (local or cloud instance)
+- MongoDB (local or MongoDB Atlas)
 - Git
 
-### 1. Clone the Repository
+### Quick Setup
+
+#### Option 1: Automated Setup (Recommended)
 ```bash
-git clone https://github.com/Sayantan-dev1003/AuthFlow.git
-cd AuthFlow
-```
+# Clone the repository
+git clone <repository-url>
+cd xpenseflow
 
-### 2. Install Dependencies
-
-#### Option A: Quick Setup (Recommended)
-```bash
-# Install all dependencies at once
-npm run install:all
-```
-
-#### Option B: Manual Installation
-```bash
-# Install root dependencies
-npm install
-
-# Install server dependencies
-npm run install:server
-
-# Install client dependencies
-npm run install:client
-```
-
-#### Option C: Automated Setup Scripts
-```bash
-# For Windows
+# Windows
 setup.bat
 
-# For Linux/Mac
+# Linux/Mac
 chmod +x setup.sh
 ./setup.sh
 ```
 
-### 3. Environment Configuration
+#### Option 2: Manual Installation
+```bash
+# Install all dependencies
+npm run install:all
 
-#### Backend Environment (.env)
-Create `server/.env` file:
+# Or install individually
+npm install                    # Root dependencies
+npm run install:server        # Backend dependencies
+npm run install:client        # Frontend dependencies
+```
+
+### Environment Configuration
+
+#### Backend Environment (server/.env)
 ```env
 # Server Configuration
 NODE_ENV=development
 PORT=3000
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/authflow
+MONGODB_URI=mongodb://localhost:27017/xpenseflow
+# Or use MongoDB Atlas:
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/xpenseflow
 
 # JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production-minimum-32-characters
+JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
 JWT_EXPIRE=15m
-JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this-in-production-minimum-32-characters
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-minimum-32-characters
 JWT_REFRESH_EXPIRE=7d
 
-# Client URL
+# Client Configuration
 CLIENT_URL=http://localhost:5173
 
-# Google OAuth
+# Google OAuth (Optional)
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 
-# Email Configuration
+# Email Configuration (Optional)
 EMAIL_SERVICE=gmail
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=your-app-password
 
-# SMS Configuration (Twilio)
-SMS_SERVICE_PROVIDER=twilio
-TWILIO_ACCOUNT_SID=your-twilio-account-sid
-TWILIO_AUTH_TOKEN=your-twilio-auth-token
-TWILIO_PHONE_NUMBER=your-twilio-phone-number
-
-# Logging Configuration
-LOG_LEVEL=info
-
 # Security Configuration
 BCRYPT_ROUNDS=12
-TOKEN_EXPIRY_HOURS=24
-PASSWORD_RESET_EXPIRY_HOURS=1
+LOG_LEVEL=info
 ```
 
-#### Frontend Environment (.env)
-Create `client/.env` file:
+#### Frontend Environment (client/.env)
 ```env
-# Client Configuration
+# API Configuration
 VITE_API_URL=http://localhost:3000/api
 
 # App Configuration
-VITE_APP_NAME=AuthFlow
+VITE_APP_NAME=XpenseFlow
 VITE_APP_VERSION=1.0.0
 ```
 
-### 4. OAuth Provider Setup
+### Start the Application
 
-#### Google OAuth Setup
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable Google+ API
-4. Create OAuth 2.0 credentials
-5. Add authorized redirect URIs:
-   - `http://localhost:3000/api/auth/google/callback` (development)
-   - `https://yourdomain.com/api/auth/google/callback` (production)
-6. Copy Client ID and Client Secret to your `.env` files
-
-### 5. Email Configuration (Gmail)
-
-1. Enable 2-factor authentication on your Gmail account
-2. Generate an App Password:
-   - Go to Google Account settings
-   - Security → 2-Step Verification → App passwords
-   - Generate password for "Mail"
-3. Use the app password in your `EMAIL_PASS` environment variable
-
-### 6. Understanding Authentication Flow
-
-#### Multi-Step Authentication Process
-
-The AuthFlow system implements a sophisticated multi-step authentication process:
-
-1. **Step 1 - Credential Verification**: User enters email/password
-2. **Step 2 - OTP Method Selection**: Choose between email or SMS verification
-3. **Step 3 - OTP Verification**: Complete authentication with OTP
-
-#### OAuth Integration
-
-**Social Login Flow:**
-1. User clicks Google button
-2. Redirected to provider's OAuth page
-3. User authorizes the application
-4. Provider redirects back with authorization code
-5. Server exchanges code for access token
-6. Server fetches user profile data
-7. User is automatically logged in
-
-**Account Linking:**
-- If user exists with same email → Link OAuth account to existing user
-- If user doesn't exist → Create new account with OAuth data
-- Supports linking multiple OAuth providers to same account
-
-#### Security Features
-
-- **Rate Limiting**: Prevents brute force attacks
-- **Account Locking**: Temporary lockout after failed attempts
-- **Token Management**: Secure JWT with refresh tokens
-- **Session Security**: HttpOnly cookies, secure flags
-- **Input Validation**: Comprehensive data validation
-- **Password Hashing**: bcrypt with salt rounds
-
-### 7. Start the Application
-
-#### Development Mode (Both servers)
+#### Development Mode
 ```bash
+# Start both frontend and backend
 npm start
+
+# Or start individually
+npm run server    # Backend only (port 3000)
+npm run client    # Frontend only (port 5173)
 ```
 
-#### Individual Servers
+#### Production Mode (Docker)
 ```bash
-# Backend only
-cd server && npm start
+# Build and start all services
+docker-compose up --build
 
-# Frontend only
-cd client && npm run dev
+# Start in background
+docker-compose up -d
 ```
 
 The application will be available at:
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:3000
+- **Frontend**: http://localhost:5173
+- **Backend API**: http://localhost:3000
+- **Production (Docker)**: http://localhost:80
 
-## 📚 API Documentation
+## 📱 User Roles & Workflows
+
+### Role Hierarchy
+1. **Admin**: Full system access, company management, user creation
+2. **Manager**: Team management, expense approval, budget oversight
+3. **Finance**: Final expense approval, financial reporting, budget management
+4. **Employee**: Expense submission, personal expense tracking
+
+### Expense Workflow
+1. **Employee** submits expense with receipt
+2. **OCR Processing** extracts data automatically
+3. **Manager** reviews and approves/rejects
+4. **Finance Team** provides final approval
+5. **System** updates budget and generates reports
+
+### User Onboarding Flow
+1. **Admin Registration**: Creates company and admin account
+2. **Company Setup**: Configures categories, budgets, and policies
+3. **User Creation**: Admin creates employee accounts
+4. **Role Assignment**: Users assigned appropriate roles and managers
+5. **Team Structure**: Hierarchical reporting relationships established
+
+## 🔧 API Documentation
 
 ### Authentication Endpoints
 
-#### Register User
+#### Register Company & Admin
 ```http
 POST /api/auth/register
 Content-Type: application/json
@@ -265,39 +443,39 @@ Content-Type: application/json
 {
   "firstName": "John",
   "lastName": "Doe",
-  "email": "john@example.com",
-  "password": "Password123",
-  "phoneNumber": "+1234567890"
+  "email": "admin@company.com",
+  "password": "SecurePassword123",
+  "phoneNumber": "+1234567890",
+  "companyName": "Acme Corp",
+  "address": {
+    "area": "Business District",
+    "city": "New York",
+    "state": "NY",
+    "zipCode": "10001",
+    "country": "United States"
+  },
+  "industry": "Technology"
 }
 ```
 
-#### Login User (Step 1: Credentials)
+#### Login (Multi-Step)
 ```http
+# Step 1: Credential Verification
 POST /api/auth/login
-Content-Type: application/json
-
 {
-  "email": "john@example.com",
-  "password": "Password123"
+  "email": "user@company.com",
+  "password": "password123"
 }
-```
 
-#### Send Login OTP (Step 2: Choose Method)
-```http
+# Step 2: Send OTP
 POST /api/auth/send-login-otp
-Content-Type: application/json
-
 {
   "userId": "user_id_from_step1",
   "method": "email"
 }
-```
 
-#### Verify Login OTP (Step 3: Complete Login)
-```http
+# Step 3: Verify OTP
 POST /api/auth/verify-login-otp
-Content-Type: application/json
-
 {
   "userId": "user_id_from_step1",
   "otp": "123456",
@@ -305,187 +483,217 @@ Content-Type: application/json
 }
 ```
 
-#### Verify Email (Registration)
-```http
-GET /api/auth/verify-email/:token
-```
+### Expense Management Endpoints
 
-#### Google OAuth
+#### Submit Expense
 ```http
-GET /api/auth/google
-```
-
-#### Refresh Token
-```http
-POST /api/auth/refresh-token
-Content-Type: application/json
+POST /api/expenses
+Authorization: Bearer <token>
+Content-Type: multipart/form-data
 
 {
-  "refreshToken": "your-refresh-token"
+  "title": "Business Lunch",
+  "description": "Client meeting lunch",
+  "amount": 45.50,
+  "category": "Meals",
+  "expenseDateTime": "2024-01-15T12:30:00Z",
+  "receipt": <file>
 }
 ```
 
-#### Password Reset Request
+#### Get Expenses
 ```http
-POST /api/auth/forgot-password
-Content-Type: application/json
-
-{
-  "email": "user@example.com"
-}
+GET /api/expenses?status=pending&page=1&limit=10
+Authorization: Bearer <token>
 ```
 
-#### Password Reset
+#### Approve/Reject Expense
 ```http
-POST /api/auth/reset-password
+PATCH /api/expenses/:id/approve
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
-  "token": "reset-token-from-email",
-  "password": "Newpassword123"
+  "action": "approved", // or "rejected"
+  "comments": "Approved for business purposes"
 }
 ```
 
 ### User Management Endpoints
 
-#### Get Current User
+#### Create User
 ```http
-GET /api/user/profile
-Authorization: Bearer <access-token>
-```
-
-#### Update Profile
-```http
-PUT /api/user/profile
-Authorization: Bearer <access-token>
+POST /api/users
+Authorization: Bearer <token>
 Content-Type: application/json
 
 {
   "firstName": "Jane",
   "lastName": "Smith",
-  "phoneNumber": "+1234567890"
+  "email": "jane@company.com",
+  "role": "employee",
+  "manager": "manager_user_id",
+  "employeeId": "EMP001"
 }
 ```
 
-## 🔐 Security Features
+#### Get Team Members
+```http
+GET /api/users/team
+Authorization: Bearer <token>
+```
 
-### Password Security
-- Passwords are hashed using bcrypt with 12 salt rounds
-- Strong password requirements (uppercase, lowercase, numbers)
-- Password confirmation on registration
-- Secure password change functionality
+## 🐳 Docker Deployment
 
-### Account Protection
-- Rate limiting: 5 login attempts per 15 minutes per IP
-- Account lockout after 5 failed attempts for 2 hours
-- OTP verification required for every login attempt
-- Email verification for new accounts
-- Multi-step authentication process for enhanced security
+### Development Environment
+```bash
+# Start development environment
+docker-compose -f docker-compose.dev.yml up
 
-### Token Security
-- JWT access tokens expire in 15 minutes (short-lived)
-- Refresh tokens expire in 7 days (long-lived)
-- Tokens are stored securely in HTTP-only cookies
-- Automatic token refresh with rotation
-- SameSite cookie protection against CSRF
+# With live reload
+docker-compose -f docker-compose.dev.yml up --build
+```
 
-### Data Validation & Sanitization
-- Server-side validation using Joi schemas
-- Input sanitization and validation
-- Email format validation
-- Phone number format validation
-- SQL injection protection
-- XSS protection with Helmet.js
+### Production Environment
+```bash
+# Build and deploy production
+docker-compose up --build -d
 
-### Security Headers
-- Helmet.js for security headers
-- Content Security Policy (CSP)
-- CORS configuration for production
-- Secure cookie settings
+# View logs
+docker-compose logs -f
 
-### Logging & Monitoring
-- Winston-based comprehensive logging
-- Security event logging (login attempts, password resets)
-- Request/response logging
-- Error tracking and monitoring
+# Scale services
+docker-compose up --scale backend=3 -d
+```
 
-## 🎨 Frontend Features
-
-### Responsive Design
-- Mobile-first approach with Tailwind CSS
-- Responsive navigation and layouts
-- Touch-friendly interface elements
-
-### User Experience
-- Real-time form validation
-- Loading states and progress indicators
-- Toast notifications for user feedback
-- Smooth transitions and animations
-
-### State Management
-- React Context for global state
-- Custom hooks for easy state access
-- Persistent authentication state
-- Automatic token refresh
-
-## 🔧 Troubleshooting
-
-### Common OAuth Issues
-
-#### Google OAuth Problems
-- **"redirect_uri_mismatch"**: Ensure callback URL exactly matches Google Console settings
-- **"invalid_client"**: Check Client ID and Secret are correct
-- **"access_denied"**: User denied permission or app not verified
-
-#### General OAuth Troubleshooting
-1. **Check Environment Variables**: Ensure all OAuth credentials are set correctly
-2. **Verify URLs**: Callback URLs must match exactly (including http/https)
-3. **Check Scopes**: Ensure required scopes are requested (profile, email)
-4. **Test in Incognito**: Clear browser cache and test in private window
-5. **Check Logs**: Monitor server logs for detailed error messages
-
-### Database Issues
-- **Connection failed**: Check MongoDB is running and connection string is correct
-- **Authentication failed**: Verify MongoDB credentials
-- **Collection errors**: Ensure database exists and user has proper permissions
-
-### Email/SMS Issues
-- **Email not sending**: Check Gmail app password and SMTP settings
-- **SMS not working**: Verify Twilio credentials and phone number format
-- **OTP not received**: Check spam folder, verify phone number format
+### Docker Services
+- **Frontend**: React app served by Nginx
+- **Backend**: Node.js API server
+- **Database**: MongoDB (or MongoDB Atlas)
+- **Nginx**: Reverse proxy and load balancer
 
 ## 🧪 Testing
 
 ### Manual Testing Checklist
-- [ ] User registration with email verification
-- [ ] Multi-step login process (credentials → OTP method → OTP verification)
-- [ ] Login with incorrect credentials (rate limiting)
-- [ ] Account lockout after multiple failed attempts
-- [ ] Google OAuth login
-- [ ] Password reset flow
-- [ ] Profile update
-- [ ] Logout functionality
-- [ ] Protected route access
-- [ ] Token refresh
-- [ ] OTP verification via email
-- [ ] OTP verification via SMS (if configured)
+- [ ] User registration and company setup
+- [ ] Multi-step login process
+- [ ] Google OAuth authentication
+- [ ] Expense submission with receipt upload
+- [ ] OCR data extraction and validation
+- [ ] Manager expense approval workflow
+- [ ] Finance team final approval
+- [ ] Budget tracking and limits
+- [ ] User role permissions
+- [ ] Password reset functionality
+- [ ] Account lockout protection
+- [ ] Rate limiting effectiveness
 
 ### API Testing
-Use tools like Postman or curl to test API endpoints:
 ```bash
-# Test health endpoint
+# Health check
 curl http://localhost:3000/health
 
-# Test registration
+# Register new company
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"firstName":"Test","lastName":"User","email":"test@example.com","password":"Password123","phoneNumber":"+1234567890"}'
+  -d '{"firstName":"Test","lastName":"Admin","email":"test@company.com","password":"Password123","companyName":"Test Corp"}'
 
-# Test multi-step login
+# Login
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@example.com","password":"Password123"}'
+  -d '{"email":"test@company.com","password":"Password123"}'
 ```
+
+## 🔍 Monitoring & Logging
+
+### Application Monitoring
+- **Winston Logging**: Structured logging with multiple levels
+- **Security Events**: Authentication attempts, failed logins, suspicious activity
+- **Performance Metrics**: API response times, database query performance
+- **Error Tracking**: Comprehensive error logging and stack traces
+
+### Log Levels
+- **Error**: System errors, authentication failures
+- **Warn**: Security warnings, rate limit hits
+- **Info**: User actions, successful operations
+- **Debug**: Detailed application flow (development only)
+
+### Health Checks
+```http
+GET /health
+Response: {
+  "status": "OK",
+  "message": "XpenseFlow server is running",
+  "timestamp": "2024-01-15T10:30:00.000Z",
+  "uptime": 3600,
+  "environment": "production"
+}
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+#### Authentication Problems
+- **"Invalid credentials"**: Check email/password combination
+- **"Account locked"**: Wait 2 hours or contact admin
+- **"OTP expired"**: Request new OTP code
+- **Google OAuth fails**: Verify OAuth credentials and callback URLs
+
+#### File Upload Issues
+- **Receipt upload fails**: Check file size (max 10MB) and format (JPG, PNG, PDF)
+- **OCR not working**: Ensure clear, high-quality receipt images
+- **Currency not detected**: Manually select currency if auto-detection fails
+
+#### Performance Issues
+- **Slow API responses**: Check database connection and indexes
+- **Frontend loading slowly**: Verify API URL configuration
+- **OCR processing slow**: Use smaller image files or compress images
+
+#### Database Issues
+- **Connection failed**: Verify MongoDB URI and network connectivity
+- **Authentication failed**: Check MongoDB credentials
+- **Collection errors**: Ensure proper database permissions
+
+### Support & Maintenance
+
+#### Regular Maintenance Tasks
+- Monitor log files for errors and security events
+- Update dependencies regularly for security patches
+- Backup database regularly (automated with MongoDB Atlas)
+- Review and rotate JWT secrets periodically
+- Monitor disk space for uploaded receipts
+
+#### Performance Optimization
+- Implement database indexing for frequently queried fields
+- Use CDN for static assets in production
+- Enable gzip compression for API responses
+- Implement caching for currency exchange rates
+- Optimize images before OCR processing
+
+## 📈 Future Enhancements
+
+### Planned Features
+- **Mobile App**: Native iOS and Android applications
+- **Advanced Reporting**: Detailed expense analytics and insights
+- **Integration APIs**: Connect with accounting software (QuickBooks, Xero)
+- **Bulk Operations**: Mass expense import/export functionality
+- **Advanced OCR**: Machine learning-enhanced receipt processing
+- **Multi-Language Support**: Internationalization for global companies
+- **Expense Policies**: Automated policy enforcement and validation
+- **Real-time Notifications**: Push notifications for mobile apps
+
+### Technical Improvements
+- **Microservices Architecture**: Split into independent services
+- **GraphQL API**: More efficient data fetching
+- **Redis Caching**: Improve performance with caching layer
+- **Elasticsearch**: Advanced search and analytics
+- **Kubernetes**: Container orchestration for scalability
+- **CI/CD Pipeline**: Automated testing and deployment
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 🤝 Contributing
 
@@ -495,18 +703,15 @@ curl -X POST http://localhost:3000/api/auth/login \
 4. Push to branch: `git push origin feature-name`
 5. Submit a pull request
 
-## 📄 License
+## 📞 Support
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🆘 Support
-
-If you encounter any issues or have questions:
-
-1. Check the [Issues](https://github.com/your-repo/issues) page
-2. Create a new issue with detailed description
-3. Include error logs and steps to reproduce
+For technical support or questions:
+- Create an issue in the GitHub repository
+- Email: support@xpenseflow.com
+- Documentation: [Project Wiki](link-to-wiki)
 
 ---
 
-**Built with ❤️ using React, Node.js, Express, and MongoDB**
+**Built with ❤️ using React, Node.js, Express, MongoDB, and modern web technologies**
+
+*XpenseFlow - Simplifying expense management for modern businesses*
